@@ -472,6 +472,8 @@ class Si4463 {
         bool checkCTS();
         bool getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf);
         bool setCommand(uint8_t length, uint8_t command, uint8_t* paraBuf);
+        bool setCommand2(uint8_t length, uint8_t command, uint8_t* paraBuf);
+        void getCommand2(uint8_t length, uint8_t command, uint8_t * paraBuf);
         bool checkDevice();
         void begin();
         bool setProperties(uint16_t startProperty, uint8_t length ,uint8_t* paraBuf);

@@ -39,9 +39,7 @@ void setup() {
   radio.begin();
   radio.powerOnReset();
 
-  delay(5000);
-
-  // heck if RF4463 works
+  // // heck if RF4463 works
 	if(!radio.checkDevice()){
     Serial.println("Failed");
 	} else {
@@ -62,21 +60,23 @@ void setup() {
 	buf[4]  = RF4463_NIRQ_INTERRUPT_SIGNAL; 
 	buf[5]  = RF4463_GPIO_SPI_DATA_OUT; 
 
-	if (!radio.setCommand(6,RF4463_CMD_GPIO_PIN_CFG,buf)) {
-    Serial.println("Failed to send command");
-  } else {
-    Serial.println("Sent the command successfully");
+  radio.setCommand(6,RF4463_CMD_GPIO_PIN_CFG,buf);
+
+  Serial.println("Set GPIO");
+  delay(5000);
+
+  radio.getCommand(6, RF4463_CMD_GPIO_PIN_CFG, buf_rx);
+
+  for (int i = 0; i < 6; i ++) {
+    Serial.printf("Buf[%d] %d, %d \n", i, buf[i], buf_rx[i]);
   }
 
-  // delay(2000);
-
-  // if (!radio.getCommand(6, RF4463_CMD_GPIO_PIN_CFG, buf_rx)) {
-  //   Serial.println("Failed to get command");
-  // }
-
-  // for (int i = 0; i < 6; i ++) {
-  //   Serial.printf("Buf[%d] %d, %d \n", i, buf[i], buf_rx[i]);
-  // }
+    // // heck if RF4463 works
+	if(!radio.checkDevice()){
+    Serial.println("Failed");
+	} else {
+    Serial.println("Success");
+  }
 
 }
 
