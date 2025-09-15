@@ -37,7 +37,7 @@ void Si4463::powerOnReset()
 bool Si4463::checkCTS()
 {
   uint16_t timeOutCnt;
-	timeOutCnt=RF4463_CTS_TIMEOUT;
+    timeOutCnt=RF4463_CTS_TIMEOUT;
 
   Serial.println("Send request");
 
@@ -49,7 +49,7 @@ bool Si4463::checkCTS()
     count ++;
   } while ( rx != RF4463_CTS_REPLY && count < RF4463_CTS_TIMEOUT );
 
-  Serial.printf("RX Value received %d after count %d", rx, count);
+  Serial.printf("RX Value received %d after count %d\n", rx, count);
 
   return rx == RF4463_CTS_REPLY;
 }
@@ -68,7 +68,6 @@ bool Si4463::getCommand(uint8_t length,uint8_t command, uint8_t * paraBuf) {
     _txbuf[0] = RF4463_CMD_READ_BUF;
 
     _spi->transfer(_txbuf, paraBuf, length);		// read parameters
-    digitalWrite(_cs, HIGH);
 
     free(_txbuf);
     return true;

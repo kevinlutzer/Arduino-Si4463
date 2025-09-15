@@ -64,15 +64,19 @@ void setup() {
 
 	if (!radio.setCommand(6,RF4463_CMD_GPIO_PIN_CFG,buf)) {
     Serial.println("Failed to send command");
+  } else {
+    Serial.println("Sent the command successfully");
   }
 
-  if (!radio.setCommand(6, RF4463_CMD_GPIO_PIN_CFG, buf_rx)) {
-    Serial.println("Failed to get command");
-  }
+  // delay(2000);
 
-  for (int i = 0; i < 6; i ++) {
-    Serial.printf("Buf[%d] %d, %d \n", i, buf[i], buf_rx[i]);
-  }
+  // if (!radio.getCommand(6, RF4463_CMD_GPIO_PIN_CFG, buf_rx)) {
+  //   Serial.println("Failed to get command");
+  // }
+
+  // for (int i = 0; i < 6; i ++) {
+  //   Serial.printf("Buf[%d] %d, %d \n", i, buf[i], buf_rx[i]);
+  // }
 
 }
 
