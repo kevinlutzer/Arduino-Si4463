@@ -40,6 +40,8 @@ void setup() {
   radio.begin();
   radio.powerOnReset();
 
+  delay(5000);
+
   // // heck if RF4463 works
 	if(!radio.checkDevice()){
     Serial.println("Failed");

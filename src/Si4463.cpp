@@ -64,7 +64,7 @@ bool Si4463::getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf) {
       if(!checkCTS())	{
           return false;  
       }
-    } 
+    }
 
     uint8_t * _txbuf = (uint8_t * ) malloc(length * sizeof(uint8_t));
     memset(_txbuf, 0x00, length);

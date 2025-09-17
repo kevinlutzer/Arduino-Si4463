@@ -10,7 +10,7 @@
 #define RF4463_CTS_REPLY					  0xff
 // Waiting time for a valid FFh CTS reading
 // the typical time is 20us
-#define RF4463_CTS_TIMEOUT 					  2500
+#define RF4463_CTS_TIMEOUT 					  10
 // Waiting time for packet send interrupt
 // this time is depended on tx length and data rate of wireless
 #define RF4463_TX_TIMEOUT 					  500
