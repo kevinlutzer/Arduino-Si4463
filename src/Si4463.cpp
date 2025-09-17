@@ -47,11 +47,27 @@ bool Si4463::checkCTS()
   do {
     digitalWrite(_cs, LOW);
     rx = _spi->transfer(RF4463_CMD_READ_BUF);
-    Serial.printf("CTS=%02x, %d\n", rx, digitalRead(_cts_irq));
+    if (rx == RF4463_CTS_REPLY) {
+      digitalWrite(_cs, LOW);
+      break;
+    }
+    _spi->transfer(0XFF);
+    // Serial.printf("CTS=%02x, %d\n", rx, digitalRead(_cts_irq));
     count ++;
   } while ( rx != RF4463_CTS_REPLY && count < RF4463_CTS_TIMEOUT );
 
   return rx == RF4463_CTS_REPLY;
+}
+
+bool Si4463::getCommand2(uint8_t length, uint8_t command, uint8_t* paraBuf) {
+  uint8_t * _txbuf = (uint8_t * ) malloc(length * sizeof(uint8_t));
+  memset(_txbuf, 0x00, length);
+
+  _spi->transfer(_txbuf, paraBuf, length);		// read parameters
+  digitalWrite(_cs, HIGH);
+
+  free(_txbuf);
+  return true;
 }
 
 bool Si4463::getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf) {
@@ -59,15 +75,12 @@ bool Si4463::getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf) {
     uint8_t rx = _spi->transfer(command);
     delayMicroseconds(1);
 
-    if (rx != RF4463_CTS_REPLY) {
-      // check if RF4463 is ready 
-      if(!checkCTS())	{
-          return false;  
-      }
+    if(!checkCTS())	{
+        return false;  
     }
 
     uint8_t * _txbuf = (uint8_t * ) malloc(length * sizeof(uint8_t));
-    memset(_txbuf, 0x00, length);
+    memset(_txbuf, 0xFF, length);
 
     _spi->transfer(_txbuf, paraBuf, length);		// read parameters
     digitalWrite(_cs, HIGH);
@@ -91,36 +104,14 @@ bool Si4463::checkDevice()
 	return partInfo == 0x4463;
 }
 
-bool Si4463::setProperties(uint16_t startProperty, uint8_t length ,uint8_t* paraBuf)
+bool Si4463::setCommand(uint8_t length, uint8_t command, uint8_t* paraBuf)
 {
-	uint8_t buf[4];
+  uint8_t * tx_buf = (uint8_t * ) malloc((length + 1) * sizeof(uint8_t));
+  tx_buf[0] = command;   		// COMMAND
+  memcpy(tx_buf + 1, paraBuf, length);
 
-	if(!checkCTS())
-		return false;
+  _spi->transfer(tx_buf, length + 1);
 
-    uint8_t * tx_buf = (uint8_t * ) malloc((length + 4) * sizeof(uint8_t));
-    tx_buf[0] = RF4463_CMD_SET_PROPERTY;
-    tx_buf[1] = startProperty >> 8;   		// GROUP
-    tx_buf[2] = length;                	// NUM_PROPS
-    tx_buf[3] = startProperty & 0xff; 		// START_PROP
-
-    memcpy(tx_buf + 4, paraBuf, length);
-
-    _spi->transfer(tx_buf, length + 4);
-
-    free(tx_buf);
-
-	return true;
-}
-
-bool Si4463::setCommand(uint8_t length,uint8_t command,uint8_t* paraBuf)
-{
-    uint8_t * tx_buf = (uint8_t * ) malloc((length + 1) * sizeof(uint8_t));
-    tx_buf[0] = command;   		// COMMAND
-    memcpy(tx_buf + 1, paraBuf, length);
-
-    _spi->transfer(tx_buf, length + 1);
-
-    free(tx_buf);
+  free(tx_buf);
 	return true;
 }

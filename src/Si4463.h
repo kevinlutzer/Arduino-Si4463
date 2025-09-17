@@ -10,7 +10,7 @@
 #define RF4463_CTS_REPLY					  0xff
 // Waiting time for a valid FFh CTS reading
 // the typical time is 20us
-#define RF4463_CTS_TIMEOUT 					  10
+#define RF4463_CTS_TIMEOUT 					  10000
 // Waiting time for packet send interrupt
 // this time is depended on tx length and data rate of wireless
 #define RF4463_TX_TIMEOUT 					  500
@@ -473,7 +473,7 @@ class Si4463 {
         bool getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf);
         bool setCommand(uint8_t length, uint8_t command, uint8_t* paraBuf);
         bool setCommand2(uint8_t length, uint8_t command, uint8_t* paraBuf);
-        void getCommand2(uint8_t length, uint8_t command, uint8_t * paraBuf);
+        bool getCommand2(uint8_t length, uint8_t command, uint8_t * paraBuf);
         bool checkDevice();
         void begin();
         bool setProperties(uint16_t startProperty, uint8_t length ,uint8_t* paraBuf);

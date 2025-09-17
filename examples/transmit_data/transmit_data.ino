@@ -18,10 +18,50 @@
 
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
+void cts() {
+  Serial.println("CTS triggered");
+}
+
+void readCommand(uint8_t cmd, size_t len) {
+  uint8_t tx_buf2[]={cmd};
+
+  digitalWrite(CS, LOW);
+  SPI1.transfer(tx_buf2, 1);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+  delayMicroseconds(80);
+
+  uint16_t rx;
+  uint16_t count = 0;
+  while(rx != 0xFF && count ++ < 1000000) {
+    digitalWrite(CS, LOW);
+    rx = SPI1.transfer16(0x44FF);
+    
+    if (rx == 0){
+      delayMicroseconds(40);
+      digitalWrite(CS, HIGH);
+      delayMicroseconds(80);
+    }
+  }
+
+  if (rx == 0xFF) {
+    Serial.println("CTS received");
+  } else {
+    Serial.println("Timeout waiting for CTS");
+    return;
+  }
+
+  for (size_t i = 0; i < len; i++) {
+    Serial.printf("Buf[%d]=%02x\n", i, SPI1.transfer(0xFF));
+  }
+}
+
 void setup() {
   pinMode(LED, OUTPUT);
   pinMode(SDN, OUTPUT);
 	pinMode(IRQ, INPUT);
+
+  attachInterrupt(6, cts, FALLING); // CTS_IRQ
 
   // Disable the module on boot
   digitalWrite(SDN, HIGH);
@@ -33,54 +73,85 @@ void setup() {
   SPI1.setTX(MOSI);
 
   Serial.begin(115200); // Set baud rate
-  while (!Serial);   
-  Serial.println("Serial started");
+  // while (!Serial);   
+  // Serial.println("Serial started");
 
   // Init the module
-  radio.begin();
-  radio.powerOnReset();
+  // radio.begin();
+  // radio.powerOnReset();
+
+  pinMode(CS, OUTPUT);
+  pinMode(SDN, OUTPUT);
+	pinMode(IRQ, INPUT);
+  pinMode(CTS_IRQ, INPUT);
+
+  digitalWrite(SDN, HIGH);
+  delay(1000);
+
+  SPI1.begin(false);
+  SPI1.beginTransaction(SPISettings(32768, MSBFIRST, SPI_MODE0));
+
+  digitalWrite(SDN, LOW);
+
+  while (digitalRead(CTS_IRQ) == LOW){}
+
+	// send power up command
+  uint8_t tx_buf[]={0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
+  digitalWrite(CS, LOW);
+  SPI1.transfer(tx_buf, 7);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+
+  Serial.println("TEST");
+  delay(5000);
+
+  readCommand(0x23, 3);
+
+  delay(1000);
+
+  digitalWrite(CS, LOW);
+  uint8_t cd[] = {0x00};
+  SPI1.transfer(cd, 1);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+
+  delay(1000);
+
+  readCommand(0x01, 6);
+
+  delayMicroseconds(50);
+
+  digitalWrite(CS, LOW);
+  uint8_t c[] = {0x014, 0b00001111};
+  SPI1.transfer(c, 2);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+
+  delayMicroseconds(50);
+
+  digitalWrite(CS, LOW);
+  uint8_t def[] = {0x00};
+  SPI1.transfer(def, 1);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+
+  delayMicroseconds(50);
+
+  readCommand(0x23, 3);
+
+  delayMicroseconds(50);
 
   delay(5000);
 
-  // // heck if RF4463 works
-	if(!radio.checkDevice()){
-    Serial.println("Failed");
-	} else {
-    Serial.println("Success");
-  }
+  digitalWrite(CS, LOW);
+  uint8_t aasd[] = {0x00};
+  SPI1.transfer(aasd, 1);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
 
-  // radio.setProperties(0x0000, 2, (uint8_t[]){0x40, 0x00}); // GLOBAL_XO_TUNE_2
-
-  // set antenna switch,in RF4463 is GPIO2 and GPIO3
-	// don't change setting of GPIO2,GPIO3,NIRQ,SDO
-  uint8_t buf[6];
-  uint8_t buf_rx[6];
-
-	buf[0]  = RF4463_GPIO_NO_CHANGE; 
-	buf[1]  = RF4463_GPIO_NO_CHANGE;
-	buf[2]  = RF4463_GPIO_RX_STATE;
-	buf[3]  = RF4463_GPIO_TX_STATE;
-	buf[4]  = RF4463_NIRQ_INTERRUPT_SIGNAL; 
-	buf[5]  = RF4463_GPIO_SPI_DATA_OUT; 
-
-  radio.setCommand(6,RF4463_CMD_GPIO_PIN_CFG,buf);
-
-  Serial.println("Set GPIO");
   delay(5000);
 
-  radio.getCommand(6, RF4463_CMD_GPIO_PIN_CFG, buf_rx);
-
-  for (int i = 0; i < 6; i ++) {
-    Serial.printf("Buf[%d] %d, %d \n", i, buf[i], buf_rx[i]);
-  }
-
-    // // heck if RF4463 works
-	if(!radio.checkDevice()){
-    Serial.println("Failed");
-	} else {
-    Serial.println("Success");
-  }
-
+  readCommand(0x01, 6); 
 }
 
 void loop() {
