@@ -3,11 +3,12 @@
 
 #include "Si4463.h"
 
-Si4463::Si4463(SPIClassRP2040 * spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq) {
+Si4463::Si4463(SPIClassRP2040 * spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq) {
     _spi = spi;
     _cs = cs;
     _sdn = sdn;
     _irq = irq;
+    _cts_irq = cts_irq;
 }
 
 void Si4463::begin()
@@ -46,31 +47,11 @@ bool Si4463::checkCTS()
   do {
     digitalWrite(_cs, LOW);
     rx = _spi->transfer(RF4463_CMD_READ_BUF);
+    Serial.printf("CTS=%02x, %d\n", rx, digitalRead(_cts_irq));
     count ++;
   } while ( rx != RF4463_CTS_REPLY && count < RF4463_CTS_TIMEOUT );
 
   return rx == RF4463_CTS_REPLY;
-}
-
-void Si4463::getCommand2(uint8_t length, uint8_t command, uint8_t * paraBuf) {
-
-    uint8_t packet_len = length + 2; // command + cts
-    uint8_t * _txbuf = (uint8_t * ) malloc(packet_len * sizeof(uint8_t));
-    memset(_txbuf, 0x00, packet_len);
-
-    uint8_t * _rxbuf = (uint8_t * ) malloc(packet_len * sizeof(uint8_t));
-    memset(_rxbuf, 0x00, packet_len);
-
-    _txbuf[0] = command;
-    _txbuf[1] = RF4463_CMD_READ_BUF;
-
-    _spi->transfer(_txbuf, _rxbuf, packet_len);
-
-    memcpy(paraBuf, _rxbuf + 2, length); // skip command and cts
-
-    free(_txbuf);
-    free(_rxbuf);
-
 }
 
 bool Si4463::getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf) {

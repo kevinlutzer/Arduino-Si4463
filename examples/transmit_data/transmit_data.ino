@@ -14,8 +14,9 @@
 #define MOSI 11
 #define MISO 12 
 #define CS 13
+#define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
 
-Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ);
+Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
 void setup() {
   pinMode(LED, OUTPUT);

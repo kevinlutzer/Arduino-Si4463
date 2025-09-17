@@ -467,7 +467,7 @@
 
 class Si4463 {
     public: 
-        Si4463(SPIClassRP2040 * spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq);
+        Si4463(SPIClassRP2040 * spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq);
         void powerOnReset();
         bool checkCTS();
         bool getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf);
@@ -483,6 +483,7 @@ class Si4463 {
         pin_size_t _cs;
         pin_size_t _sdn;
         pin_size_t _irq;
+        pin_size_t _cts_irq;
 };
 
 #endif
