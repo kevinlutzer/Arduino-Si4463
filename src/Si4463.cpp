@@ -54,10 +54,10 @@ void Si4463::powerOnReset()
 }
 
 void Si4463::write(uint8_t * buf, size_t len) {
-  digitalWrite(_cs, LOW);
+  digitalWrite(CS, LOW);
   _spi->transfer(buf, len);
   delayMicroseconds(40);
-  digitalWrite(_cs, HIGH);
+  digitalWrite(CS, HIGH);
 }
 
 void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {

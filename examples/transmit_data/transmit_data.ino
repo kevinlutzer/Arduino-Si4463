@@ -72,11 +72,6 @@ void _setup() {
 void setup() {
   _setup();
 
-  // uint8_t tx_buf[]={0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
-  // digitalWrite(CS, LOW);
-  // SPI1.transfer(tx_buf, 7);
-  // delayMicroseconds(40);
-  // digitalWrite(CS, HIGH);
 
   Serial.println("TEST");
   delay(1000);
