@@ -63,21 +63,21 @@ void Si4463::write(uint8_t * buf, size_t len) {
 void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
   uint8_t tx_buf2[]={cmd};
 
-  digitalWrite(_cs, LOW);
+  digitalWrite(CS, LOW);
   SPI1.transfer(tx_buf2, 1);
   delayMicroseconds(40);
-  digitalWrite(_cs, HIGH);
+  digitalWrite(CS, HIGH);
   delayMicroseconds(80);
 
   uint16_t rx;
   uint16_t count = 0;
   while(rx != 0xFF && count ++ < 1000000) {
-    digitalWrite(_cs, LOW);
+    digitalWrite(CS, LOW);
     rx = SPI1.transfer16(0x44FF);
     
     if (rx == 0){
       delayMicroseconds(40);
-      digitalWrite(_cs, HIGH);
+      digitalWrite(CS, HIGH);
       delayMicroseconds(80);
     }
   }
@@ -140,12 +140,10 @@ bool Si4463::checkDevice()
 	uint16_t partInfo;
 
 	cmdResp(RF4463_CMD_PART_INFO, buf, 9);		// read part info to check if 4463 works
-		
-  for (int i = 0; i < 9; i ++) {
-    Serial.printf("Buf[%d]=%d\n", i, buf[i]);
-  }
 
 	partInfo=buf[1]<<8|buf[2];
-	return partInfo == 0x4463;
+  
+  Serial.printf("Part Number: %04x\n", partInfo);
+  return partInfo == 0x4463;
 }
 

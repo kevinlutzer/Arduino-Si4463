@@ -72,23 +72,10 @@ void _setup() {
 void setup() {
   _setup();
 
-
   Serial.println("TEST");
   delay(1000);
 
-  readCommand(0x23, 3);
-
-  delay(1000);
-
-  digitalWrite(CS, LOW);
-  uint8_t cd[] = {0x00};
-  SPI1.transfer(cd, 1);
-  delayMicroseconds(40);
-  digitalWrite(CS, HIGH);
-
-  delay(1000);
-
-  readCommand(0x01, 6);
+  radio.checkDevice();
 
   delayMicroseconds(50);
 
