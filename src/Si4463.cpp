@@ -6,11 +6,11 @@
 
 
 Si4463::Si4463(SPIClassRP2040 * spi, pin_size_t _cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq) {
-    _spi = spi;
-    _cs = _cs;
-    _sdn = sdn;
-    _irq = irq;
-    _cts_irq = cts_irq;
+  _spi = spi;
+  _cs = CS;
+  _sdn = SDN;
+  _irq = IRQ;
+  _cts_irq = CTS_IRQ;
 }
 
 void cts2() {
@@ -19,13 +19,26 @@ void cts2() {
 
 void Si4463::begin()
 {
-  pinMode(SDN, OUTPUT);
-	pinMode(IRQ, INPUT);
+  Serial.begin(115200); // Set baud rate
+  while (!Serial);
+
+  pinMode(_sdn, OUTPUT);
+  
+  Serial.printf("%d, %d\n", _cs, CS);
+  Serial.printf("%d, %d\n", _sdn, SDN);
+  Serial.printf("%d, %d\n", _irq, IRQ);
+  Serial.printf("%d, %d\n", _cts_irq, CTS_IRQ);
+  Serial.printf("%d, %d\n", _cs, CS);
+
+  pinMode(_cs, OUTPUT);
+  pinMode(_sdn, OUTPUT);
+  pinMode(_cts_irq, INPUT);
+	pinMode(_irq, INPUT);
 
   attachInterrupt(6, cts2, FALLING); // CTS_IRQ
 
   // Disable the module on boot
-  digitalWrite(SDN, HIGH);
+  digitalWrite(_sdn, HIGH);
 
   // Initialize the SPI
   SPI1.setRX(MISO);
@@ -33,16 +46,10 @@ void Si4463::begin()
   SPI1.setSCK(SCK);
   SPI1.setTX(MOSI);
 
-  Serial.begin(115200); // Set baud rate
   // while (!Serial);   
   // Serial.println("Serial started");
 
-  pinMode(CS, OUTPUT);
-  pinMode(SDN, OUTPUT);
-	pinMode(IRQ, INPUT);
-  pinMode(CTS_IRQ, INPUT);
-
-  digitalWrite(SDN, HIGH);
+  digitalWrite(_sdn, HIGH);
   delay(1000);
 
   SPI1.begin(false);

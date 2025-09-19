@@ -6,6 +6,16 @@
 // Pins
 // 
 
+#define LED 25 // Built-in LED on Raspberry Pi Pico
+#define SDN 16 // System reset for the SI4463 chip. Active low
+#define IRQ 17 // IRQ Pin from the SI4463 to the Pi
+
+#define SCK 10
+#define MOSI 11
+#define MISO 12 
+#define CS 13
+#define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
+
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
 void cts() {
