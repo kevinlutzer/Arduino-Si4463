@@ -10,7 +10,7 @@
 #define RF4463_CTS_REPLY					  0xff
 // Waiting time for a valid FFh CTS reading
 // the typical time is 20us
-#define RF4463_CTS_TIMEOUT 					  10000
+#define RF4463_CTS_TIMEOUT 					  2500 
 // Waiting time for packet send interrupt
 // this time is depended on tx length and data rate of wireless
 #define RF4463_TX_TIMEOUT 					  500
@@ -465,18 +465,34 @@
 // Specific to the module that is using the si4463
 #define RF4463_RSSI_CAL_CONSTANT 137
 
+#define LED 25 // Built-in LED on Raspberry Pi Pico
+#define SDN 16 // System reset for the SI4463 chip. Active low
+#define IRQ 17 // IRQ Pin from the SI4463 to the Pi
+
+#define SCK 10
+#define MOSI 11
+#define MISO 12 
+#define CS 13
+#define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
+
 class Si4463 {
     public: 
         Si4463(SPIClassRP2040 * spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq);
         void powerOnReset();
+
+        /** 
+         * @brief Waits for the CTS signal from the device via polling the SPI interface
+         * This function will block until CTS is received or a timeout occurs. This function
+         * leaves the CS line **if** a CTS is received, otherwise the CS line is set high
+         * 
+         * @returns true if CTS received, false if timeout
+        */
         bool checkCTS();
-        bool getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf);
-        bool setCommand(uint8_t length, uint8_t command, uint8_t* paraBuf);
-        bool setCommand2(uint8_t length, uint8_t command, uint8_t* paraBuf);
-        bool getCommand2(uint8_t length, uint8_t command, uint8_t * paraBuf);
+        
         bool checkDevice();
         void begin();
-        bool setProperties(uint16_t startProperty, uint8_t length ,uint8_t* paraBuf);
+        void cmdResp(uint8_t cmd, uint8_t * buf, size_t len);
+        void noOp();
 
     private: 
         SPIClassRP2040 * _spi;
@@ -484,6 +500,27 @@ class Si4463 {
         pin_size_t _sdn;
         pin_size_t _irq;
         pin_size_t _cts_irq;
+
+        /** 
+         * @brief Writes a buffer to the SPI device. This handles the CS pin automatically
+         * This is a blocking call, however an additional 40us wait is needed to make sure 
+         * the CS pin is set after the last clock cycle
+         * 
+         * @param buf Buffer to write
+         * @param len Length of the buffer
+         * 
+        */
+        void write(uint8_t * buf, size_t len);
+
+        /**
+         * @brief reads a stream of bytes from the SPI device of length len
+         * This command handles the CS pin automatically, and assumes that there
+         * is not active SPI transaction.
+         * 
+         * @param buf Buffer to read the data into
+         * @param len Length of the buffer 
+        */
+        void read(uint8_t * buf, size_t len);
 };
 
 #endif

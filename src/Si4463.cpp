@@ -3,90 +3,148 @@
 
 #include "Si4463.h"
 
-Si4463::Si4463(SPIClassRP2040 * spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq) {
+
+
+Si4463::Si4463(SPIClassRP2040 * spi, pin_size_t _cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq) {
     _spi = spi;
-    _cs = cs;
+    _cs = _cs;
     _sdn = sdn;
     _irq = irq;
     _cts_irq = cts_irq;
 }
 
+void cts2() {
+  Serial.println("CTS triggered - from Si4463.cpp");
+}
+
 void Si4463::begin()
 {
-    pinMode(_cs, OUTPUT);
-    pinMode(_sdn, OUTPUT);
-	pinMode(_irq, INPUT);
+  pinMode(SDN, OUTPUT);
+	pinMode(IRQ, INPUT);
 
-    digitalWrite(_sdn, HIGH);
+  attachInterrupt(6, cts2, FALLING); // CTS_IRQ
 
-    _spi->begin(true);
-    _spi->beginTransaction(SPISettings(32768, MSBFIRST, SPI_MODE0));
+  // Disable the module on boot
+  digitalWrite(SDN, HIGH);
+
+  // Initialize the SPI
+  SPI1.setRX(MISO);
+  SPI1.setCS(CS);
+  SPI1.setSCK(SCK);
+  SPI1.setTX(MOSI);
+
+  Serial.begin(115200); // Set baud rate
+  // while (!Serial);   
+  // Serial.println("Serial started");
+
+  pinMode(CS, OUTPUT);
+  pinMode(SDN, OUTPUT);
+	pinMode(IRQ, INPUT);
+  pinMode(CTS_IRQ, INPUT);
+
+  digitalWrite(SDN, HIGH);
+  delay(1000);
+
+  SPI1.begin(false);
+  SPI1.beginTransaction(SPISettings(32768, MSBFIRST, SPI_MODE0));
+
+  digitalWrite(SDN, LOW);
+
+  while (digitalRead(CTS_IRQ) == LOW){}
 }
 
 void Si4463::powerOnReset()
 {
   digitalWrite(_sdn, LOW);
-  delay(1000);						// wait for RF4463 stable
 
-	// send power up command
+  // Wait for the device to boot properly so it can be
+  // accessed via SPI
+  while (digitalRead(_cts_irq) == LOW){}
+
+	// Send power up command, with XTAL params
   uint8_t tx_buf[]={0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
-  _spi->transfer(tx_buf, 7);
-
-  delay(200);
+  write(tx_buf, 7);
 }
 
-bool Si4463::checkCTS()
-{
-  uint16_t timeOutCnt;
-    timeOutCnt=RF4463_CTS_TIMEOUT;
+void Si4463::write(uint8_t * buf, size_t len) {
+  digitalWrite(_cs, LOW);
+  _spi->transfer(buf, len);
+  delayMicroseconds(40);
+  digitalWrite(_cs, HIGH);
+}
 
-  Serial.println("Send request");
+void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
+  uint8_t tx_buf2[]={cmd};
 
-  uint8_t rx = 0;
+  digitalWrite(_cs, LOW);
+  SPI1.transfer(tx_buf2, 1);
+  delayMicroseconds(40);
+  digitalWrite(_cs, HIGH);
+  delayMicroseconds(80);
+
+  uint16_t rx;
   uint16_t count = 0;
-  do {
+  while(rx != 0xFF && count ++ < 1000000) {
     digitalWrite(_cs, LOW);
-    rx = _spi->transfer(RF4463_CMD_READ_BUF);
-    if (rx == RF4463_CTS_REPLY) {
-      digitalWrite(_cs, LOW);
-      break;
+    rx = SPI1.transfer16(0x44FF);
+    
+    if (rx == 0){
+      delayMicroseconds(40);
+      digitalWrite(_cs, HIGH);
+      delayMicroseconds(80);
     }
-    _spi->transfer(0XFF);
-    // Serial.printf("CTS=%02x, %d\n", rx, digitalRead(_cts_irq));
-    count ++;
-  } while ( rx != RF4463_CTS_REPLY && count < RF4463_CTS_TIMEOUT );
+  }
 
+  if (rx == 0xFF) {
+    Serial.println("CTS received");
+  } else {
+    Serial.println("Timeout waiting for CTS");
+    return;
+  }
+
+  for (size_t i = 0; i < len; i++) {
+    buf[i] = SPI1.transfer(0xFF);
+  }
+}
+
+bool Si4463::checkCTS() {
+  uint16_t rx;
+  uint16_t count = 0;
+  while(rx != RF4463_CTS_REPLY && count < RF4463_CTS_TIMEOUT) {
+    digitalWrite(_cs, LOW);
+    rx = _spi->transfer16(0x44FF);
+    
+    // Si4463 will return 0x00 until it is ready,
+    // End the SPI transaction and try again. Also assert _cs
+    // if we are at the timeout limit
+    if (rx == 0 || count == RF4463_CTS_TIMEOUT - 1){
+      delayMicroseconds(40);
+      digitalWrite(_cs, HIGH);
+      delayMicroseconds(80);
+    }
+
+    // intentionally leave the _cs line low is CTS is received
+    // so the app code can immediately read the response
+    count ++;
+  }
+
+  // If rx != RF4463_CTS_REPLY then we timed out
   return rx == RF4463_CTS_REPLY;
 }
 
-bool Si4463::getCommand2(uint8_t length, uint8_t command, uint8_t* paraBuf) {
-  uint8_t * _txbuf = (uint8_t * ) malloc(length * sizeof(uint8_t));
-  memset(_txbuf, 0x00, length);
+// void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
+//   uint8_t tx_buf[]={cmd};
+//   write(tx_buf, 1);
+//   delayMicroseconds(80);
+//   if (!checkCTS()) {
+//     Serial.println("CTS Timeout");
+//   }
+//   read(buf, len);
+// }
 
-  _spi->transfer(_txbuf, paraBuf, length);		// read parameters
-  digitalWrite(_cs, HIGH);
-
-  free(_txbuf);
-  return true;
-}
-
-bool Si4463::getCommand(uint8_t length, uint8_t command, uint8_t * paraBuf) {
-
-    uint8_t rx = _spi->transfer(command);
-    delayMicroseconds(1);
-
-    if(!checkCTS())	{
-        return false;  
-    }
-
-    uint8_t * _txbuf = (uint8_t * ) malloc(length * sizeof(uint8_t));
-    memset(_txbuf, 0xFF, length);
-
-    _spi->transfer(_txbuf, paraBuf, length);		// read parameters
-    digitalWrite(_cs, HIGH);
-
-    free(_txbuf);
-    return true;
+void Si4463::noOp() {
+  uint8_t buf[]={RF4463_CMD_NOP};
+  write(buf, 1);
 }
 
 bool Si4463::checkDevice()
@@ -94,7 +152,7 @@ bool Si4463::checkDevice()
 	uint8_t buf[9];
 	uint16_t partInfo;
 
-	getCommand(9, RF4463_CMD_PART_INFO, buf);		// read part info to check if 4463 works
+	cmdResp(RF4463_CMD_PART_INFO, buf, 9);		// read part info to check if 4463 works
 		
   for (int i = 0; i < 9; i ++) {
     Serial.printf("Buf[%d]=%d\n", i, buf[i]);
@@ -104,14 +162,3 @@ bool Si4463::checkDevice()
 	return partInfo == 0x4463;
 }
 
-bool Si4463::setCommand(uint8_t length, uint8_t command, uint8_t* paraBuf)
-{
-  uint8_t * tx_buf = (uint8_t * ) malloc((length + 1) * sizeof(uint8_t));
-  tx_buf[0] = command;   		// COMMAND
-  memcpy(tx_buf + 1, paraBuf, length);
-
-  _spi->transfer(tx_buf, length + 1);
-
-  free(tx_buf);
-	return true;
-}

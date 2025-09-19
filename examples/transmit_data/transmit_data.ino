@@ -6,16 +6,6 @@
 // Pins
 // 
 
-#define LED 25 // Built-in LED on Raspberry Pi Pico
-#define SDN 16 // System reset for the SI4463 chip. Active low
-#define IRQ 17 // IRQ Pin from the SI4463 to the Pi
-
-#define SCK 10
-#define MOSI 11
-#define MISO 12 
-#define CS 13
-#define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
-
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
 void cts() {
@@ -56,46 +46,18 @@ void readCommand(uint8_t cmd, size_t len) {
   }
 }
 
-void setup() {
-  pinMode(LED, OUTPUT);
-  pinMode(SDN, OUTPUT);
-	pinMode(IRQ, INPUT);
-
-  attachInterrupt(6, cts, FALLING); // CTS_IRQ
-
-  // Disable the module on boot
-  digitalWrite(SDN, HIGH);
-
-  // Initialize the SPI
+void _setup() {
   SPI1.setRX(MISO);
   SPI1.setCS(CS);
   SPI1.setSCK(SCK);
   SPI1.setTX(MOSI);
 
-  Serial.begin(115200); // Set baud rate
-  // while (!Serial);   
-  // Serial.println("Serial started");
+  radio.begin();
+}
 
-  // Init the module
-  // radio.begin();
-  // radio.powerOnReset();
+void setup() {
+  _setup();
 
-  pinMode(CS, OUTPUT);
-  pinMode(SDN, OUTPUT);
-	pinMode(IRQ, INPUT);
-  pinMode(CTS_IRQ, INPUT);
-
-  digitalWrite(SDN, HIGH);
-  delay(1000);
-
-  SPI1.begin(false);
-  SPI1.beginTransaction(SPISettings(32768, MSBFIRST, SPI_MODE0));
-
-  digitalWrite(SDN, LOW);
-
-  while (digitalRead(CTS_IRQ) == LOW){}
-
-	// send power up command
   uint8_t tx_buf[]={0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
   digitalWrite(CS, LOW);
   SPI1.transfer(tx_buf, 7);
