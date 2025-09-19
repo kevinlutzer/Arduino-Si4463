@@ -42,11 +42,11 @@ void Si4463::begin()
 
 void Si4463::powerOnReset()
 {
-  digitalWrite(_sdn, LOW);
+  digitalWrite(SDN, LOW);
 
   // Wait for the device to boot properly so it can be
   // accessed via SPI
-  while (digitalRead(_cts_irq) == LOW){}
+  while (digitalRead(CTS_IRQ) == LOW){}
 
 	// Send power up command, with XTAL params
   uint8_t tx_buf[]={0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
