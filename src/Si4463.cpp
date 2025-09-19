@@ -92,6 +92,8 @@ void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
   for (size_t i = 0; i < len; i++) {
     buf[i] = SPI1.transfer(0xFF);
   }
+
+  digitalWrite(CS, HIGH);
 }
 
 bool Si4463::checkCTS() {
@@ -142,7 +144,7 @@ bool Si4463::checkDevice()
 	cmdResp(RF4463_CMD_PART_INFO, buf, 9);		// read part info to check if 4463 works
 
 	partInfo=buf[1]<<8|buf[2];
-  
+
   Serial.printf("Part Number: %04x\n", partInfo);
   return partInfo == 0x4463;
 }
