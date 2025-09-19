@@ -19,37 +19,17 @@ void cts2() {
 
 void Si4463::begin()
 {
-  Serial.begin(115200); // Set baud rate
-  while (!Serial);
-
-  pinMode(_sdn, OUTPUT);
+  pinMode(SDN, OUTPUT);
   
-  Serial.printf("%d, %d\n", _cs, CS);
-  Serial.printf("%d, %d\n", _sdn, SDN);
-  Serial.printf("%d, %d\n", _irq, IRQ);
-  Serial.printf("%d, %d\n", _cts_irq, CTS_IRQ);
-  Serial.printf("%d, %d\n", _cs, CS);
-
-  pinMode(_cs, OUTPUT);
-  pinMode(_sdn, OUTPUT);
-  pinMode(_cts_irq, INPUT);
-	pinMode(_irq, INPUT);
+  pinMode(CS, OUTPUT);
+  pinMode(SDN, OUTPUT);
+  pinMode(CTS_IRQ, INPUT);
 
   attachInterrupt(6, cts2, FALLING); // CTS_IRQ
 
   // Disable the module on boot
-  digitalWrite(_sdn, HIGH);
+  digitalWrite(SDN, HIGH);
 
-  // Initialize the SPI
-  SPI1.setRX(MISO);
-  SPI1.setCS(CS);
-  SPI1.setSCK(SCK);
-  SPI1.setTX(MOSI);
-
-  // while (!Serial);   
-  // Serial.println("Serial started");
-
-  digitalWrite(_sdn, HIGH);
   delay(1000);
 
   SPI1.begin(false);

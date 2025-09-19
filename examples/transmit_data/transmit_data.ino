@@ -57,6 +57,9 @@ void readCommand(uint8_t cmd, size_t len) {
 }
 
 void _setup() {
+  Serial.begin(115200); // Set baud rate
+  while (!Serial);
+
   SPI1.setRX(MISO);
   SPI1.setCS(CS);
   SPI1.setSCK(SCK);
