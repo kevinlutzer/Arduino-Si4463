@@ -237,7 +237,7 @@ void loop() {
   uint8_t buf[] = "Hello World!";
   digitalWrite(LED, HIGH);
   radio.txPacket(buf, sizeof(buf));
-  // delay(1000);
-  // digitalWrite(LED, LOW);
-  // delay(1000);
+  delay(2000);
+  digitalWrite(LED, LOW);
+  delay(1000);
 }
