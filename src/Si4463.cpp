@@ -2,8 +2,7 @@
 #include <SPI.h>
 
 #include "Si4463.h"
-
-
+#include "radio_config.h"
 
 Si4463::Si4463(SPIClassRP2040 * spi, pin_size_t _cs, pin_size_t sdn, pin_size_t irq, pin_size_t cts_irq) {
   _spi = spi;
@@ -70,7 +69,19 @@ void Si4463::writeBuf(uint8_t * buf, size_t len) {
   digitalWrite(CS, HIGH);
 }
 
-void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
+void Si4463::setCmd(uint8_t cmd, uint8_t * param, size_t len) {
+  uint8_t tx_buf[len + 1];
+  
+  tx_buf[0] = cmd; 
+  memcpy(tx_buf + 1, param, len);
+
+  writeBuf(tx_buf, len + 1);
+
+  // Clear the internal rx buffer in the RF4463
+  noOp();
+}
+
+void Si4463::getCmd(uint8_t cmd, uint8_t * buf, size_t len) {
   uint8_t tx_buf2[]={cmd};
 
   digitalWrite(CS, LOW);
@@ -104,6 +115,29 @@ void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
   digitalWrite(CS, HIGH);
 }
 
+void Si4463::setConfig(uint8_t * parameters, size_t paraLen) {
+  // command buf starts with length of command in RADIO_CONFIGURATION_DATA_ARRAY
+  uint8_t cmdLen;
+  uint8_t command;
+  uint16_t pos;
+  uint8_t buf[30];
+
+  // power up command had already send
+  paraLen=paraLen-1;
+  cmdLen=parameters[0];
+  pos=cmdLen+1;
+
+  while(pos<paraLen)
+  {
+    cmdLen=parameters[pos++]-1;		// get command lend
+    command=parameters[pos++];		// get command
+    memcpy(buf,parameters+pos,cmdLen);		// get parameters
+
+    setCmd(command,buf,cmdLen);
+    pos=pos+cmdLen;
+  }
+}
+
 bool Si4463::checkCTS() {
   uint16_t rx;
   uint16_t count = 0;
@@ -134,12 +168,36 @@ void Si4463::noOp() {
   writeBuf(buf, 1);
 }
 
+void Si4463::setSyncWords(uint8_t * syncWords, size_t len)
+{
+	if((len==0)||(len>3))
+		return;
+
+	uint8_t buf[5];
+	buf[0]=len-1;
+
+  memcpy(buf+1,syncWords,len);
+
+  setProperties(RF4463_PROPERTY_SYNC_CONFIG,sizeof(buf),buf);
+}
+
+void Si4463::setTxPower(uint8_t power)
+{
+	if ( power > 127 )	// max is 127
+		return;
+
+	uint8_t buf[4]={0x08,0x00,0x00,0x3d};
+	buf[1]=power;
+
+	setProperties(RF4463_PROPERTY_PA_MODE,sizeof(buf),buf);
+}
+
 bool Si4463::checkDevice()
 {
 	uint8_t buf[9];
 	uint16_t partInfo;
 
-	cmdResp(RF4463_CMD_PART_INFO, buf, 9);		// read part info to check if 4463 works
+	getCmd(RF4463_CMD_PART_INFO, buf, 9);		// read part info to check if 4463 works
 
 	partInfo=buf[1]<<8|buf[2];
 
@@ -147,3 +205,56 @@ bool Si4463::checkDevice()
   return partInfo == 0x4463;
 }
 
+void Si4463::configureGPIO() {
+  uint8_t buf[6];
+   
+  // set antenna switch,in RF4463 is GPIO2 and GPIO3
+	// don't change setting of GPIO2,GPIO3,NIRQ,SDO
+	buf[0]  = RF4463_GPIO_INV_CTS; 
+	buf[1]  = RF4463_GPIO_INV_CTS;
+	buf[2]  = RF4463_GPIO_RX_STATE;
+	buf[3]  = RF4463_GPIO_TX_STATE;
+	buf[4]  = RF4463_NIRQ_INTERRUPT_SIGNAL; 
+	buf[5]  = RF4463_GPIO_SPI_DATA_OUT; 
+	
+  setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, 6);
+}
+
+void Si4463::setProperties(uint16_t startProperty, uint8_t length , uint8_t * paraBuf)
+{
+
+  uint8_t tx_buf[4 + length];
+	tx_buf[0] = RF4463_CMD_SET_PROPERTY;
+	tx_buf[1] = startProperty >> 8;   		// GROUP
+	tx_buf[2] = length;                	// NUM_PROPS
+	tx_buf[3] = startProperty & 0xff; 		// START_PROP
+
+  memcpy(tx_buf + 4 , paraBuf, length);
+
+  writeBuf(tx_buf, length + 4);
+}
+
+void Si4463::getProperties(uint16_t startProperty, uint8_t len , uint8_t * paraBuf)
+{
+
+	uint8_t buf[4];
+	buf[0]= RF4463_CMD_GET_PROPERTY;
+	buf[1] = startProperty >> 8;   		// GROUP
+	buf[2] = len;               		// NUM_PROPS
+	buf[3] = startProperty & 0xff; 		// START_PROP
+
+  writeBuf(buf, 4);
+
+  uint8_t rx_buf[len + 2];
+  uint8_t tx_buf[len + 2];
+  tx_buf[0] = RF4463_CMD_READ_BUF;
+  memset(tx_buf + 2, 0xFF, len);
+
+  digitalWrite(CS, LOW);
+  _spi->transfer(tx_buf, rx_buf, len + 2);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+  delayMicroseconds(80);
+
+  memcpy(paraBuf, rx_buf + 2, len);
+}

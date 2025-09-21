@@ -6,6 +6,9 @@
 #define _SI4463_DRIVER_H 
 
 #include <Arduino.h>
+#include "radio_config.h"
+
+static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 
 #define RF4463_CTS_REPLY					  0xff
 // Waiting time for a valid FFh CTS reading
@@ -491,8 +494,16 @@ class Si4463 {
         
         bool checkDevice();
         void begin();
-        void cmdResp(uint8_t cmd, uint8_t * buf, size_t len);
+        void setCmd(uint8_t cmd, uint8_t * buf, size_t len);
+        void getCmd(uint8_t cmd, uint8_t * buf, size_t len);
+        void setConfig(uint8_t * parameters, size_t paraLen);
         void noOp();
+        void configureGPIO();
+        void getProperties(uint16_t startProperty, uint8_t length ,uint8_t* paraBuf);
+        void setProperties(uint16_t startProperty, uint8_t length ,uint8_t* paraBuf);
+        
+        void setTxPower(uint8_t power);
+        void setSyncWords(uint8_t * syncWords, size_t len); 
 
     private: 
         SPIClassRP2040 * _spi;

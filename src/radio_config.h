@@ -27,7 +27,6 @@
 // Modulation index: 5
 */
 
-
 // CONFIGURATION PARAMETERS
 #define RADIO_CONFIGURATION_DATA_RADIO_XO_FREQ                     30000000L
 #define RADIO_CONFIGURATION_DATA_CHANNEL_NUMBER                    0x00
@@ -553,10 +552,11 @@
 // DO NOT EDIT/MODIFY BELOW THIS LINE!
 // --------------------------------------------
 
+        // 0x07, RF_POWER_UP, \
+        // 0x08, RF_GPIO_PIN_CFG, \
+
 #ifndef FIRMWARE_LOAD_COMPILE
 #define RADIO_CONFIGURATION_DATA_ARRAY { \
-        0x07, RF_POWER_UP, \
-        0x08, RF_GPIO_PIN_CFG, \
         0x06, RF_GLOBAL_XO_TUNE_2, \
         0x05, RF_GLOBAL_CONFIG_1, \
         0x05, RF_INT_CTL_ENABLE_1, \
