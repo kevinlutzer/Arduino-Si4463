@@ -50,10 +50,20 @@ void Si4463::powerOnReset()
 
 	// Send power up command, with XTAL params
   uint8_t tx_buf[]={0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
-  write(tx_buf, 7);
+  writeBuf(tx_buf, 7);
 }
 
-void Si4463::write(uint8_t * buf, size_t len) {
+void Si4463::readBuf(uint8_t * buf, size_t len) {
+  uint8_t tx_buf[len];
+  memset(tx_buf, 0xFF, len);
+
+  digitalWrite(CS, LOW);
+  _spi->transfer(tx_buf, buf, len);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+}
+
+void Si4463::writeBuf(uint8_t * buf, size_t len) {
   digitalWrite(CS, LOW);
   _spi->transfer(buf, len);
   delayMicroseconds(40);
@@ -89,9 +99,7 @@ void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
     return;
   }
 
-  for (size_t i = 0; i < len; i++) {
-    buf[i] = SPI1.transfer(0xFF);
-  }
+  readBuf(buf, len);
 
   digitalWrite(CS, HIGH);
 }
@@ -121,19 +129,9 @@ bool Si4463::checkCTS() {
   return rx == RF4463_CTS_REPLY;
 }
 
-// void Si4463::cmdResp(uint8_t cmd, uint8_t * buf, size_t len) {
-//   uint8_t tx_buf[]={cmd};
-//   write(tx_buf, 1);
-//   delayMicroseconds(80);
-//   if (!checkCTS()) {
-//     Serial.println("CTS Timeout");
-//   }
-//   read(buf, len);
-// }
-
 void Si4463::noOp() {
   uint8_t buf[]={RF4463_CMD_NOP};
-  write(buf, 1);
+  writeBuf(buf, 1);
 }
 
 bool Si4463::checkDevice()

@@ -73,7 +73,6 @@ void setup() {
   _setup();
 
   Serial.println("TEST");
-  delay(1000);
 
   radio.checkDevice();
 
@@ -99,7 +98,7 @@ void setup() {
 
   delayMicroseconds(50);
 
-  delay(5000);
+  delay(100);
 
   digitalWrite(CS, LOW);
   uint8_t aasd[] = {0x00};
@@ -107,7 +106,7 @@ void setup() {
   delayMicroseconds(40);
   digitalWrite(CS, HIGH);
 
-  delay(5000);
+  delay(100);
 
   readCommand(0x01, 6); 
 }

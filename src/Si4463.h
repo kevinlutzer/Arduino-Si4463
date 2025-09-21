@@ -510,7 +510,7 @@ class Si4463 {
          * @param len Length of the buffer
          * 
         */
-        void write(uint8_t * buf, size_t len);
+        void writeBuf(uint8_t * buf, size_t len);
 
         /**
          * @brief reads a stream of bytes from the SPI device of length len
@@ -520,7 +520,7 @@ class Si4463 {
          * @param buf Buffer to read the data into
          * @param len Length of the buffer 
         */
-        void read(uint8_t * buf, size_t len);
+        void readBuf(uint8_t * buf, size_t len);
 };
 
 #endif
