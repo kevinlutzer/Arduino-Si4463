@@ -258,3 +258,64 @@ void Si4463::getProperties(uint16_t startProperty, uint8_t len , uint8_t * paraB
 
   memcpy(paraBuf, rx_buf + 2, len);
 }
+
+void Si4463::txPacket(uint8_t* sendbuf,uint8_t sendLen)
+{
+	uint16_t txTimer;
+
+	fifoReset();		 				// clr fifo
+	writeTxFifo(sendbuf,sendLen);		// load data to fifo	
+	setTxInterrupt();
+	clrInterrupts();					// clr int factor	
+	enterTxMode();						// enter TX mode
+	
+	txTimer=RF4463_TX_TIMEOUT;
+	while(txTimer--)
+	{
+		if(digitalRead(IRQ) == LOW)					// wait INT
+		{
+      uint8_t buf[3];
+      setCmd(RF4463_CMD_GET_INT_STATUS,buf,sizeof(buf));
+      Serial.printf("INT STATUS: %02x %02x %02x\n", buf[0], buf[1], buf[2]);  
+      Serial.println("Success!");
+			return;
+		}
+		delay(1);
+	}
+
+  Serial.println("Timeout waiting for TX interrupt");
+}
+
+void Si4463::fifoReset()
+{
+  uint8_t buf[1]={0x03};
+  setCmd(RF4463_CMD_FIFO_INFO,buf,1);	// clr fifo
+}
+
+void Si4463::writeTxFifo(uint8_t* databuf,uint8_t length)
+{
+	setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),&length);
+	uint8_t buf[length+1];
+	buf[0]=length;
+	memcpy(buf+1,databuf,length);
+	setCmd(RF4463_CMD_TX_FIFO_WRITE,buf,length+1);
+}
+
+void Si4463::setTxInterrupt()
+{
+	uint8_t buf[3]={0x01,0x20,0x00};			// enable PACKET_SENT interrupt
+	setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3,buf);
+}
+
+void Si4463::clrInterrupts()
+{
+  uint8_t buf[]={0x00, 0x00, 0x00};
+  setCmd(RF4463_CMD_GET_INT_STATUS,buf,sizeof(buf));
+}
+
+void Si4463::enterTxMode()
+{
+	uint8_t buf[]={0x00,0x30,0x00,0x00};
+	buf[0]=RF4463_FREQ_CHANNEL;
+	setCmd(RF4463_CMD_START_TX, buf, sizeof(buf));
+}

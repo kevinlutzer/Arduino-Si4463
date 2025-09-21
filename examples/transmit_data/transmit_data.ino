@@ -56,30 +56,10 @@ void readCommand(uint8_t cmd, size_t len) {
   }
 }
 
-void _setup() {
-  Serial.begin(115200); // Set baud rate
-  while (!Serial);
-
-  SPI1.setRX(MISO);
-  SPI1.setCS(CS);
-  SPI1.setSCK(SCK);
-  SPI1.setTX(MOSI);
-
-  radio.begin();
-  radio.powerOnReset();
-
-  delay(1000);
+void _init() {
 
   uint8_t buf[20];
 
-	// Set RF parameter,like frequency,data rate etc
-	radio.setConfig(RF4463_CONFIGURATION_DATA,sizeof(RF4463_CONFIGURATION_DATA));
-  radio.configureGPIO();
-
-  Serial.println("SET");
-
-  delay(2000);
-  	
 	// frequency adjust
 	// frequency will inaccurate if change this parameter
 	buf[0]  = 98;
@@ -190,6 +170,33 @@ void _setup() {
   radio.setTxPower(127);
 }
 
+void _setup() {
+  Serial.begin(115200); // Set baud rate
+  while (!Serial);
+
+  SPI1.setRX(MISO);
+  SPI1.setCS(CS);
+  SPI1.setSCK(SCK);
+  SPI1.setTX(MOSI);
+
+  radio.begin();
+  radio.powerOnReset();
+
+  delay(1000);
+
+  uint8_t buf[20];
+
+	// Set RF parameter,like frequency,data rate etc
+	radio.setConfig(RF4463_CONFIGURATION_DATA,sizeof(RF4463_CONFIGURATION_DATA));
+  radio.configureGPIO();
+
+  Serial.println("SET");
+
+  delay(2000);
+
+  _init();
+}
+
 void setup() {
   _setup();
 
@@ -227,8 +234,10 @@ void setup() {
 }
 
 void loop() {
+  uint8_t buf[] = "Hello World!";
   digitalWrite(LED, HIGH);
-  delay(1000);
-  digitalWrite(LED, LOW);
-  delay(1000);
+  radio.txPacket(buf, sizeof(buf));
+  // delay(1000);
+  // digitalWrite(LED, LOW);
+  // delay(1000);
 }

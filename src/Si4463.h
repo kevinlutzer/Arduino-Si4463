@@ -504,6 +504,12 @@ class Si4463 {
         
         void setTxPower(uint8_t power);
         void setSyncWords(uint8_t * syncWords, size_t len); 
+        void txPacket(uint8_t* sendbuf,uint8_t sendLen);
+        void fifoReset();		 				// clr fifo
+	    void writeTxFifo(uint8_t* sendbuf,uint8_t sendLen);		// load data to fifo	
+	    void setTxInterrupt();
+	    void clrInterrupts();					// clr int factor	
+	    void enterTxMode();						// enter TX mode
 
     private: 
         SPIClassRP2040 * _spi;
