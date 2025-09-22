@@ -4,7 +4,7 @@
 
 //
 // Pins
-// 
+//
 
 #define LED 25 // Built-in LED on Raspberry Pi Pico
 #define SDN 16 // System reset for the SI4463 chip. Active low
@@ -12,18 +12,16 @@
 
 #define SCK 10
 #define MOSI 11
-#define MISO 12 
+#define MISO 12
 #define CS 13
 #define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
 
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
-void cts() {
-  Serial.println("CTS triggered");
-}
+void cts() { Serial.println("CTS triggered"); }
 
 void readCommand(uint8_t cmd, size_t len) {
-  uint8_t tx_buf2[]={cmd};
+  uint8_t tx_buf2[] = {cmd};
 
   digitalWrite(CS, LOW);
   SPI1.transfer(tx_buf2, 1);
@@ -33,11 +31,11 @@ void readCommand(uint8_t cmd, size_t len) {
 
   uint16_t rx;
   uint16_t count = 0;
-  while(rx != 0xFF && count ++ < 1000000) {
+  while (rx != 0xFF && count++ < 1000000) {
     digitalWrite(CS, LOW);
     rx = SPI1.transfer16(0x44FF);
-    
-    if (rx == 0){
+
+    if (rx == 0) {
       delayMicroseconds(40);
       digitalWrite(CS, HIGH);
       delayMicroseconds(80);
@@ -60,119 +58,123 @@ void _init() {
 
   uint8_t buf[20];
 
-	// frequency adjust
-	// frequency will inaccurate if change this parameter
-	buf[0]  = 98;
-	radio.setProperties(RF4463_PROPERTY_GLOBAL_XO_TUNE,1,buf);
+  // frequency adjust
+  // frequency will inaccurate if change this parameter
+  buf[0] = 98;
+  radio.setProperties(RF4463_PROPERTY_GLOBAL_XO_TUNE, 1, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_GLOBAL_XO_TUNE,1,buf);
+  radio.getProperties(RF4463_PROPERTY_GLOBAL_XO_TUNE, 1, buf);
   Serial.printf("XO TUNE: %02x\n", buf[0]);
 
-	// tx = rx = 64 byte,PH mode ,high performance mode
-	buf[0] = 0x40;
-	radio.setProperties(RF4463_PROPERTY_GLOBAL_CONFIG,1,buf);
+  // tx = rx = 64 byte,PH mode ,high performance mode
+  buf[0] = 0x40;
+  radio.setProperties(RF4463_PROPERTY_GLOBAL_CONFIG, 1, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_GLOBAL_CONFIG,1,buf);
+  radio.getProperties(RF4463_PROPERTY_GLOBAL_CONFIG, 1, buf);
   Serial.printf("GLOBAL CONFIG: %02x\n", buf[0]);
 
-	// set preamble
-	buf[0]  = 0x08;		//  8 bytes Preamble			
-	buf[1]  = 0x14;		//  detect 20 bits
-	buf[2]  = 0x00;						
-	buf[3]  = 0x0f;
-	buf[4]  = RF4463_PREAMBLE_FIRST_1|RF4463_PREAMBLE_LENGTH_BYTES|RF4463_PREAMBLE_STANDARD_1010;
-	buf[5]  = 0x00;
-	buf[6]  = 0x00;
-	buf[7]  = 0x00;
-	buf[8]  = 0x00;
-	radio.setProperties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH,9,buf);
+  // set preamble
+  buf[0] = 0x08; //  8 bytes Preamble
+  buf[1] = 0x14; //  detect 20 bits
+  buf[2] = 0x00;
+  buf[3] = 0x0f;
+  buf[4] = RF4463_PREAMBLE_FIRST_1 | RF4463_PREAMBLE_LENGTH_BYTES |
+           RF4463_PREAMBLE_STANDARD_1010;
+  buf[5] = 0x00;
+  buf[6] = 0x00;
+  buf[7] = 0x00;
+  buf[8] = 0x00;
+  radio.setProperties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH, 9, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH,9,buf);
+  radio.getProperties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH, 9, buf);
   Serial.print("PREAMBLE TX LENGTH: ");
   for (size_t i = 0; i < 9; i++) {
     Serial.printf("%02x ", buf[i]);
   }
   Serial.println();
 
+  // set sync words
+  buf[0] = 0x2d;
+  buf[1] = 0xd4;
+  radio.setSyncWords(buf, 2);
 
-	// set sync words
-	buf[0] = 0x2d;
-	buf[1] = 0xd4;
-	radio.setSyncWords(buf,2);
-   
   // set CRC
-	buf[0] = RF4463_CRC_SEED_ALL_1S|RF4463_CRC_ITU_T ;			
-	radio.setProperties(RF4463_PROPERTY_PKT_CRC_CONFIG,1,buf);
+  buf[0] = RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T;
+  radio.setProperties(RF4463_PROPERTY_PKT_CRC_CONFIG, 1, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_PKT_CRC_CONFIG,1,buf);
+  radio.getProperties(RF4463_PROPERTY_PKT_CRC_CONFIG, 1, buf);
   Serial.printf("CRC CONFIG: %02x\n", buf[0]);
-	
-	buf[0]=RF4463_CRC_ENDIAN;
-	radio.setProperties(RF4463_PROPERTY_PKT_CONFIG1,1,buf);
+
+  buf[0] = RF4463_CRC_ENDIAN;
+  radio.setProperties(RF4463_PROPERTY_PKT_CONFIG1, 1, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_PKT_CONFIG1,1,buf);
+  radio.getProperties(RF4463_PROPERTY_PKT_CONFIG1, 1, buf);
   Serial.printf("PKT CONFIG1: %02x\n", buf[0]);
 
-	buf[0]=RF4463_IN_FIFO|RF4463_DST_FIELD_ENUM_2;
-	buf[1]=RF4463_SRC_FIELD_ENUM_1;
-	buf[2]=0x00;
-	radio.setProperties(RF4463_PROPERTY_PKT_LEN,3,buf);
+  buf[0] = RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2;
+  buf[1] = RF4463_SRC_FIELD_ENUM_1;
+  buf[2] = 0x00;
+  radio.setProperties(RF4463_PROPERTY_PKT_LEN, 3, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_PKT_LEN,3,buf);
+  radio.getProperties(RF4463_PROPERTY_PKT_LEN, 3, buf);
   Serial.print("PKT LEN: ");
   for (size_t i = 0; i < 3; i++) {
     Serial.printf("%02x ", buf[i]);
   }
   Serial.println();
-	
-	// set length of Field 1 -- 4
-	// variable len,field as length field,field 2 as data field
-	// didn't use field 3 -- 4
-	buf[0] = 0x00;
-	buf[1] = 0x01;
-	buf[2] = RF4463_FIELD_CONFIG_PN_START;
-	buf[3] = RF4463_FIELD_CONFIG_CRC_START|RF4463_FIELD_CONFIG_SEND_CRC|RF4463_FIELD_CONFIG_CHECK_CRC|RF4463_FIELD_CONFIG_CRC_ENABLE;
-	buf[4] = 0x00;
-	buf[5] = 50;
-	buf[6] = RF4463_FIELD_CONFIG_PN_START;
-	buf[7] = RF4463_FIELD_CONFIG_CRC_START|RF4463_FIELD_CONFIG_SEND_CRC|RF4463_FIELD_CONFIG_CHECK_CRC|RF4463_FIELD_CONFIG_CRC_ENABLE;;
-	buf[8]  = 0x00; 
-	buf[9] = 0x00;
-	buf[10] = 0x00;
-	buf[11] = 0x00;
-	radio.setProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8 ,12,buf);
+
+  // set length of Field 1 -- 4
+  // variable len,field as length field,field 2 as data field
+  // didn't use field 3 -- 4
+  buf[0] = 0x00;
+  buf[1] = 0x01;
+  buf[2] = RF4463_FIELD_CONFIG_PN_START;
+  buf[3] = RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
+           RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE;
+  buf[4] = 0x00;
+  buf[5] = 50;
+  buf[6] = RF4463_FIELD_CONFIG_PN_START;
+  buf[7] = RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
+           RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE;
+  ;
+  buf[8] = 0x00;
+  buf[9] = 0x00;
+  buf[10] = 0x00;
+  buf[11] = 0x00;
+  radio.setProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8, 12, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8 ,12,buf);
+  radio.getProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8, 12, buf);
   Serial.print("PKT FIELD 1 LENGTH: ");
   for (size_t i = 0; i < 12; i++) {
     Serial.printf("%02x ", buf[i]);
   }
   Serial.println();
-  
-	buf[0] = 0x00;
-	buf[1] = 0x00;
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	buf[4] = 0x00;
-	buf[5] = 0x00;
-	buf[6] = 0x00;
-	buf[7] = 0x00;
-	radio.setProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8,8,buf);
+
+  buf[0] = 0x00;
+  buf[1] = 0x00;
+  buf[2] = 0x00;
+  buf[3] = 0x00;
+  buf[4] = 0x00;
+  buf[5] = 0x00;
+  buf[6] = 0x00;
+  buf[7] = 0x00;
+  radio.setProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8, 8, buf);
   memset(buf, 0, sizeof(buf));
-  radio.getProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8,8,buf);
+  radio.getProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8, 8, buf);
   Serial.print("PKT FIELD 4 LENGTH: ");
   for (size_t i = 0; i < 8; i++) {
     Serial.printf("%02x ", buf[i]);
   }
   Serial.println();
 
-	// set max tx power
+  // set max tx power
   radio.setTxPower(127);
 }
 
 void _setup() {
   Serial.begin(115200); // Set baud rate
-  while (!Serial);
+  while (!Serial)
+    ;
 
   SPI1.setRX(MISO);
   SPI1.setCS(CS);
@@ -186,8 +188,8 @@ void _setup() {
 
   uint8_t buf[20];
 
-	// Set RF parameter,like frequency,data rate etc
-	radio.setConfig(RF4463_CONFIGURATION_DATA,sizeof(RF4463_CONFIGURATION_DATA));
+  // Set RF parameter,like frequency,data rate etc
+  radio.setConfig(RF4463_CONFIGURATION_DATA, sizeof(RF4463_CONFIGURATION_DATA));
   radio.configureGPIO();
 
   Serial.println("SET");
@@ -197,35 +199,28 @@ void _setup() {
   _init();
 }
 
+uint8_t rx_buf[256];
+uint8_t rx_len;
+
 void setup() {
   _setup();
-
-  Serial.println("TEST");
-
   delay(1000);
-  radio.noOp();
-
-  delay(100);
-
   radio.rxInit();
 }
 
-uint8_t rx_buf[256];
-uint8_t rx_len;
-    
 void loop() {
-    if (digitalRead(IRQ) == LOW) { // wait INT
-        Serial.println("Message received!");
-        radio.clrInterrupts();
-        rx_len=radio.rxPacket(rx_buf);  // read rx data
-        Serial.print("Received: ");
-        for (size_t i = 0; i < rx_len; i++) {
-            Serial.printf("%c", rx_buf[i]);
-        }
-        radio.rxInit();
-    } else {
-        Serial.println("No message");
+  if (digitalRead(IRQ) == LOW) { // wait INT
+    Serial.println("Message received!");
+    radio.clrInterrupts();
+    rx_len = radio.rxPacket(rx_buf); // read rx data
+    Serial.print("Received: ");
+    for (size_t i = 0; i < rx_len; i++) {
+      Serial.printf("%c", rx_buf[i]);
     }
+    radio.rxInit();
+  } else {
+    Serial.println("No message");
+  }
 
-    delay(500);
+  delay(500);
 }
