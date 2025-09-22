@@ -172,22 +172,34 @@ void _init() {
 
 void _setup() {
   Serial.begin(115200); // Set baud rate
-  while (!Serial);
+  //while (!Serial);
+
+  Serial.println("BLAH");
 
   SPI1.setRX(MISO);
   SPI1.setCS(CS);
   SPI1.setSCK(SCK);
   SPI1.setTX(MOSI);
 
+  Serial.println("BEGIN");
+
   radio.begin();
+
+  Serial.println("POWER ON RESET");
+
   radio.powerOnReset();
 
   delay(1000);
 
   uint8_t buf[20];
 
+  Serial.println("SET CONFIG");
+
 	// Set RF parameter,like frequency,data rate etc
 	radio.setConfig(RF4463_CONFIGURATION_DATA,sizeof(RF4463_CONFIGURATION_DATA));
+
+  Serial.println("CONFIGURE GPIO");
+
   radio.configureGPIO();
 
   Serial.println("SET");

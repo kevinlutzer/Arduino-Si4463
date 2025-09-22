@@ -510,6 +510,11 @@ class Si4463 {
 	    void setTxInterrupt();
 	    void clrInterrupts();					// clr int factor	
 	    void enterTxMode();						// enter TX mode
+        uint8_t rxPacket(uint8_t * recvbuf);
+        bool rxInit();
+        void enterRxMode();
+        void setRxInterrupt();
+        uint8_t readRxFifo(uint8_t* databuf);
 
     private: 
         SPIClassRP2040 * _spi;

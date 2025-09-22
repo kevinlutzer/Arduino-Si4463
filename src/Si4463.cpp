@@ -319,3 +319,61 @@ void Si4463::enterTxMode()
 	buf[0]=RF4463_FREQ_CHANNEL;
 	setCmd(RF4463_CMD_START_TX, buf, sizeof(buf));
 }
+
+uint8_t Si4463::rxPacket(uint8_t * recvbuf)
+{
+	uint8_t rxLen;
+	rxLen=readRxFifo(recvbuf);			// read data from fifo
+	fifoReset();						// clr fifo
+
+	return rxLen;
+}
+
+bool Si4463::rxInit()
+{		
+	uint8_t length;
+	length=50;
+	setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),&length);	// reload rx fifo size
+	fifoReset();				// clr fifo
+	setRxInterrupt();
+	clrInterrupts();			// clr int factor	
+	enterRxMode();				// enter RX mode
+	return true;
+}
+
+void Si4463::enterRxMode()
+{
+	uint8_t buf[]={0x00,0x00,0x00,0x00,0x00,0x08,0x08};
+	buf[0]=RF4463_FREQ_CHANNEL;
+  setCmd(RF4463_CMD_START_RX, buf, sizeof(buf));
+}
+
+void Si4463::setRxInterrupt()
+{
+	uint8_t buf[3]={0x03,0x18,0x00};			// enable PACKET_RX interrupt
+	setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3,buf);
+}
+
+uint8_t Si4463::readRxFifo(uint8_t* databuf)
+{
+	// if(!checkCTS()) {
+  //   return 0;
+  // }
+	uint8_t readLen;
+	digitalWrite(CS, LOW);
+
+  SPI1.transfer(RF4463_CMD_RX_FIFO_READ);
+  readLen = SPI1.transfer(0XFF);
+
+  Serial.println("Read Length: " + String(readLen)); 
+
+  uint8_t tx_buf[readLen];
+  memset(tx_buf, 0xFF, readLen);
+  SPI1.transfer(tx_buf, databuf, readLen);
+
+  delayMicroseconds(40);
+	digitalWrite(CS, HIGH);
+  delayMicroseconds(80);  
+
+  return readLen;
+}
