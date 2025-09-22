@@ -10,5 +10,5 @@ lint:
     # Lint everything except the .pio directory
     find . \
     -path './.pio' -prune -o \
-    \( \( -name \*.cpp -o -name \*.h -o -name \*.ino \) -a ! -iname \*soap\* \) \
+    \( \( -name \*.cpp -o -name \*.h -o -name \*.ino \) -a ! -iname \*radio_config.h\* \) \
     -print0 | xargs -0 -n 1 clang-format -i --verbose
