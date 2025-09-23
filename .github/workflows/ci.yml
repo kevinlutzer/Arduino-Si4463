@@ -45,12 +45,14 @@ jobs:
       run: |
         arduino-cli core update-index
         arduino-cli core install rp2040:rp2040
+        arduino-cli board listall rp2040
         
     - name: Link library for compilation
       run: |
         # Create symlink so arduino-cli can find the library
         mkdir -p ~/Arduino/libraries
         ln -sf "$PWD" ~/Arduino/libraries/Si4463
+        arduino-cli lib list
         
     - name: Install clang-format
       run: |
