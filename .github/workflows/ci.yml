@@ -14,10 +14,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Cache Arduino CLI and cores
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.arduino15
+          ~/bin
+        key: arduino-${{ runner.os }}-${{ hashFiles('**/library.properties') }}
+        restore-keys: |
+          arduino-${{ runner.os }}-
+      
     - name: Install Arduino CLI
       run: |
-        curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-        sudo mv bin/arduino-cli /usr/local/bin/
+        if ! command -v arduino-cli &> /dev/null; then
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          sudo mv bin/arduino-cli /usr/local/bin/
+        fi
         arduino-cli version
         
     - name: Initialize Arduino CLI
@@ -33,6 +45,12 @@ jobs:
       run: |
         arduino-cli core update-index
         arduino-cli core install rp2040:rp2040
+        
+    - name: Link library for compilation
+      run: |
+        # Create symlink so arduino-cli can find the library
+        mkdir -p ~/Arduino/libraries
+        ln -sf "$PWD" ~/Arduino/libraries/Si4463
         
     - name: Install clang-format
       run: |
@@ -53,14 +71,14 @@ jobs:
         # This follows the same pattern as the .justfile but checks instead of formatting
         echo "Checking code formatting..."
         formatting_errors=0
-        temp_file=$(mktemp)
         
-        find . \
+        # Use the same find pattern as in .justfile
+        files=$(find . \
           -path './.pio' -prune -o \
           \( \( -name \*.cpp -o -name \*.h -o -name \*.ino \) -a ! -iname \*radio_config.h\* \) \
-          -print > "$temp_file"
+          -print)
           
-        while IFS= read -r file; do
+        for file in $files; do
           if [ -f "$file" ]; then
             echo "Checking $file..."
             if ! diff -u "$file" <(clang-format "$file") > /dev/null; then
@@ -73,9 +91,7 @@ jobs:
               echo "✅ File $file is properly formatted"
             fi
           fi
-        done < "$temp_file"
-        
-        rm "$temp_file"
+        done
           
         if [ $formatting_errors -gt 0 ]; then
           echo "❌ Found $formatting_errors formatting issues"
