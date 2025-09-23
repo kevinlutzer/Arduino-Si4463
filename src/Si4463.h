@@ -496,27 +496,18 @@ public:
 
   bool checkDevice();
   void begin();
-  void setCmd(uint8_t cmd, uint8_t *buf, size_t len);
-  void getCmd(uint8_t cmd, uint8_t *buf, size_t len);
-  void setConfig(uint8_t *parameters, size_t paraLen);
-  void noOp();
   void configureGPIO();
+
+  void setConfig(uint8_t *parameters, size_t paraLen);
+
   void getProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
   void setProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
 
   void setTxPower(uint8_t power);
   void setSyncWords(uint8_t *syncWords, size_t len);
   void txPacket(uint8_t *sendbuf, uint8_t sendLen);
-  void fifoReset();                                    // clr fifo
-  void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
-  void setTxInterrupt();
-  void clrInterrupts(); // clr int factor
-  void enterTxMode();   // enter TX mode
   uint8_t rxPacket(uint8_t *recvbuf);
   bool rxInit();
-  void enterRxMode();
-  void setRxInterrupt();
-  uint8_t readRxFifo(uint8_t *databuf);
 
 private:
   SPIClassRP2040 *_spi;
@@ -524,6 +515,20 @@ private:
   pin_size_t _sdn;
   pin_size_t _irq;
   pin_size_t _cts_irq;
+
+  void noOp();
+
+  void setCmd(uint8_t cmd, uint8_t *buf, size_t len);
+  void getCmd(uint8_t cmd, uint8_t *buf, size_t len);
+
+  void enterRxMode();
+  void setRxInterrupt();
+  uint8_t readRxFifo(uint8_t *databuf);
+  void fifoReset();                                    // clr fifo
+  void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
+  void setTxInterrupt();
+  void clrInterrupts(); // clr int factor
+  void enterTxMode();   // enter TX mode
 
   /**
    * @brief Writes a buffer to the SPI device. This handles the CS pin
