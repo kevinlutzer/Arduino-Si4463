@@ -133,24 +133,22 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   return true;
 }
 
-void Si4463::setConfig(uint8_t *parameters, size_t paraLen) {
+void Si4463::setConfig(uint8_t * parameters, size_t parameters_len) {
+
   // command buf starts with length of command in RADIO_CONFIGURATION_DATA_ARRAY
-  uint8_t cmdLen;
-  uint8_t command;
-  uint16_t pos;
-  uint8_t buf[30];
+  uint8_t cmdLen, cmd, pos, buf[30];
 
   // power up command had already send
-  paraLen = paraLen - 1;
+  parameters_len = parameters_len - 1;
   cmdLen = parameters[0];
   pos = cmdLen + 1;
 
-  while (pos < paraLen) {
+  while (pos < parameters_len) {
     cmdLen = parameters[pos++] - 1;        // get command lend
-    command = parameters[pos++];           // get command
+    cmd = parameters[pos++];           // get command
     memcpy(buf, parameters + pos, cmdLen); // get parameters
 
-    setCmd(command, buf, cmdLen);
+    this->setCmd(cmd, buf, cmdLen);
     pos = pos + cmdLen;
   }
 }
