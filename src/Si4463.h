@@ -501,12 +501,11 @@ public:
   bool checkCTS();
 
   /**
-   * @brief Gets the device ID of the connected Si4463 device from the 
+   * @brief Gets the device ID of the connected Si4463 device from the
    * RF4463_CMD_PART_INFO command
    * @returns Device ID as a 16-bit integer, or 0 if error occurs
    */
   uint16_t getDeviceID();
-
 
   void begin();
   void configureGPIO();

@@ -228,14 +228,9 @@ uint16_t Si4463::getDeviceID() {
 void Si4463::configureGPIO() {
   // set antenna switch,in RF4463 is GPIO2 and GPIO3
   // don't change setting of GPIO2,GPIO3,NIRQ,SDO
-  uint8_t buf[] = { 
-    RF4463_GPIO_INV_CTS,
-    RF4463_GPIO_INV_CTS, 
-    RF4463_GPIO_RX_STATE,
-    RF4463_GPIO_TX_STATE,
-    RF4463_NIRQ_INTERRUPT_SIGNAL,
-    RF4463_GPIO_SPI_DATA_OUT
-  };
+  uint8_t buf[] = {RF4463_GPIO_INV_CTS,          RF4463_GPIO_INV_CTS,
+                   RF4463_GPIO_RX_STATE,         RF4463_GPIO_TX_STATE,
+                   RF4463_NIRQ_INTERRUPT_SIGNAL, RF4463_GPIO_SPI_DATA_OUT};
 
   setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, sizeof(buf));
 }
