@@ -8,6 +8,9 @@
 #include "radio_config.h"
 #include <Arduino.h>
 
+// ID that **should** be returned by the getDeviceID function
+#define SI4463_DEVICE_ID 0x4463
+
 static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 
 // Max length of the command with it's len len
@@ -497,7 +500,14 @@ public:
    */
   bool checkCTS();
 
-  bool checkDevice();
+  /**
+   * @brief Gets the device ID of the connected Si4463 device from the 
+   * RF4463_CMD_PART_INFO command
+   * @returns Device ID as a 16-bit integer, or 0 if error occurs
+   */
+  uint16_t getDeviceID();
+
+
   void begin();
   void configureGPIO();
 

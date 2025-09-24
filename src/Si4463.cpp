@@ -197,44 +197,47 @@ void Si4463::setSyncWords(uint8_t *syncWords, size_t len) {
 
   memcpy(buf + 1, syncWords, len);
 
-  setProperties(RF4463_PROPERTY_SYNC_CONFIG, sizeof(buf), buf);
+  this->setProperties(RF4463_PROPERTY_SYNC_CONFIG, sizeof(buf), buf);
 }
 
 void Si4463::setTxPower(uint8_t power) {
-  if (power > 127) // max is 127
+  if (power > 127)
     return;
 
-  uint8_t buf[4] = {0x08, 0x00, 0x00, 0x3d};
+  uint8_t buf[4];
+
+  // Read the existing config to avoid overwriting other PA settings
+  this->getProperties(RF4463_PROPERTY_PA_MODE, 4, buf);
+
+  // Modify only the power level
+  // PA_PWR_LVL is byte 1, bits 6:0
   buf[1] = power;
 
-  setProperties(RF4463_PROPERTY_PA_MODE, sizeof(buf), buf);
+  this->setProperties(RF4463_PROPERTY_PA_MODE, sizeof(buf), buf);
 }
 
-bool Si4463::checkDevice() {
+uint16_t Si4463::getDeviceID() {
   uint8_t buf[9];
-  uint16_t partInfo;
+  if (!getCmd(RF4463_CMD_PART_INFO, buf, 9)) {
+    return 0;
+  }
 
-  getCmd(RF4463_CMD_PART_INFO, buf, 9); // read part info to check if 4463 works
-
-  partInfo = buf[1] << 8 | buf[2];
-
-  Serial.printf("Part Number: %04x\n", partInfo);
-  return partInfo == 0x4463;
+  return buf[1] << 8 | buf[2];
 }
 
 void Si4463::configureGPIO() {
-  uint8_t buf[6];
-
   // set antenna switch,in RF4463 is GPIO2 and GPIO3
   // don't change setting of GPIO2,GPIO3,NIRQ,SDO
-  buf[0] = RF4463_GPIO_INV_CTS;
-  buf[1] = RF4463_GPIO_INV_CTS;
-  buf[2] = RF4463_GPIO_RX_STATE;
-  buf[3] = RF4463_GPIO_TX_STATE;
-  buf[4] = RF4463_NIRQ_INTERRUPT_SIGNAL;
-  buf[5] = RF4463_GPIO_SPI_DATA_OUT;
+  uint8_t buf[] = { 
+    RF4463_GPIO_INV_CTS,
+    RF4463_GPIO_INV_CTS, 
+    RF4463_GPIO_RX_STATE,
+    RF4463_GPIO_TX_STATE,
+    RF4463_NIRQ_INTERRUPT_SIGNAL,
+    RF4463_GPIO_SPI_DATA_OUT
+  };
 
-  setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, 6);
+  setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, sizeof(buf));
 }
 
 void Si4463::setProperties(uint16_t startProperty, uint8_t length,

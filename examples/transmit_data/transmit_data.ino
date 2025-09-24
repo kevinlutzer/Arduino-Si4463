@@ -92,11 +92,12 @@ void _init() {
   radio.setProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8, 8, buf);
 
   // set max tx power
-  radio.setTxPower(127);
+  radio.setTxPower(23);
 }
 
-void _setup() {
+void setup() {
   Serial.begin(115200); // Set baud rate
+  while(!Serial.available());
 
   SPI1.setRX(MISO);
   SPI1.setCS(CS);
@@ -111,12 +112,9 @@ void _setup() {
   radio.configureGPIO();
 
   _init();
-}
-
-void setup() {
-  _setup();
   delay(1000);
-  radio.checkDevice();
+
+  Serial.printf("Device ID: %04x\n", radio.getDeviceID());
 }
 
 void loop() {
