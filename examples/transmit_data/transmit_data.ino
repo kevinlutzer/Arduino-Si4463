@@ -106,10 +106,8 @@ void _setup() {
   radio.begin();
   radio.powerOnReset();
 
-  uint8_t buf[20];
-
   // Set RF parameter,like frequency,data rate etc
-  radio.setConfig(RF4463_CONFIGURATION_DATA, sizeof(RF4463_CONFIGURATION_DATA));
+  radio.applyDefaultConfig();
   radio.configureGPIO();
 
   _init();

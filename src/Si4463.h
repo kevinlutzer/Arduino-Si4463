@@ -10,6 +10,9 @@
 
 static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 
+// Max length of the command with it's len len 
+#define RF4463_CONFIGURATION_DATA_MAX_LEN 0x10
+
 #define RF4463_CTS_REPLY 0xff
 // Waiting time for a valid FFh CTS reading
 // the typical time is 20us
@@ -498,7 +501,13 @@ public:
   void begin();
   void configureGPIO();
 
-  void setConfig(uint8_t *parameters, size_t paraLen);
+  /** 
+   * @brief Applies a default configuration to the Si4463. This configuration
+   * comes from the supplied radio_config.h file from Silicon Labs.
+   * Once this command is run, updates to the config should be made to tailor
+   * the config to your application
+   */
+  void applyDefaultConfig();
 
   void getProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
   void setProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);

@@ -45,12 +45,11 @@ void Si4463::powerOnReset() {
 
   // Wait for the device to boot properly so it can be
   // accessed via SPI
-  while (digitalRead(CTS_IRQ) == LOW) {
-  }
+  while (digitalRead(CTS_IRQ) == LOW);
 
-  // Send power up command, with XTAL params
-  uint8_t tx_buf[] = {0x02, 0x01, 0x00, 0x01, 0xC9, 0xC3, 0x80};
-  writeBuf(tx_buf, 7);
+  uint8_t tx_buf[] = {RF_POWER_UP};
+  this->writeBuf(tx_buf, 7);
+  this->noOp();
 }
 
 void Si4463::readBuf(uint8_t *buf, size_t len) {
@@ -133,22 +132,26 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   return true;
 }
 
-void Si4463::setConfig(uint8_t * parameters, size_t parameters_len) {
-
+void Si4463::applyDefaultConfig() {
   // command buf starts with length of command in RADIO_CONFIGURATION_DATA_ARRAY
-  uint8_t cmdLen, cmd, pos, buf[30];
+  uint8_t * parameters, cmdLen, command, buf[RF4463_CONFIGURATION_DATA_MAX_LEN];
+  size_t paraLen; 
+  uint16_t pos;
+
+  parameters = RF4463_CONFIGURATION_DATA;
+  paraLen = sizeof(RF4463_CONFIGURATION_DATA);
 
   // power up command had already send
-  parameters_len = parameters_len - 1;
+  paraLen = paraLen - 1;
   cmdLen = parameters[0];
   pos = cmdLen + 1;
 
-  while (pos < parameters_len) {
+  while (pos < paraLen) {
     cmdLen = parameters[pos++] - 1;        // get command lend
-    cmd = parameters[pos++];           // get command
+    command = parameters[pos++];           // get command
     memcpy(buf, parameters + pos, cmdLen); // get parameters
 
-    this->setCmd(cmd, buf, cmdLen);
+    this->setCmd(command, buf, cmdLen);
     pos = pos + cmdLen;
   }
 }
