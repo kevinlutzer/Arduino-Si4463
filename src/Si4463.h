@@ -481,7 +481,7 @@ static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
-         pin_size_t cts_irq);
+         pin_size_t cts_irq, uint32_t spi_speed = 32768);
   void powerOnReset();
 
   /**
@@ -508,6 +508,7 @@ public:
   void txPacket(uint8_t *sendbuf, uint8_t sendLen);
   uint8_t rxPacket(uint8_t *recvbuf);
   bool rxInit();
+  void clearInterrupts(); // clr int factor
 
 private:
   SPIClassRP2040 *_spi;
@@ -515,11 +516,12 @@ private:
   pin_size_t _sdn;
   pin_size_t _irq;
   pin_size_t _cts_irq;
+  SPISettings _spi_settings;
 
   void noOp();
 
   void setCmd(uint8_t cmd, uint8_t *buf, size_t len);
-  void getCmd(uint8_t cmd, uint8_t *buf, size_t len);
+  bool getCmd(uint8_t cmd, uint8_t *buf, size_t len);
 
   void enterRxMode();
   void setRxInterrupt();
@@ -527,7 +529,7 @@ private:
   void fifoReset();                                    // clr fifo
   void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
   void setTxInterrupt();
-  void clrInterrupts(); // clr int factor
+
   void enterTxMode();   // enter TX mode
 
   /**

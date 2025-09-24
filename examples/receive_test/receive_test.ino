@@ -132,7 +132,7 @@ void setup() {
 void loop() {
   if (digitalRead(IRQ) == LOW) { // wait INT
     Serial.println("Message received!");
-    radio.clrInterrupts();
+    radio.clearInterrupts();
     rx_len = radio.rxPacket(rx_buf); // read rx data
     Serial.print("Received: ");
     for (size_t i = 0; i < rx_len; i++) {

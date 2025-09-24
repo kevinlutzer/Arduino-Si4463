@@ -5,37 +5,39 @@
 #include "radio_config.h"
 
 Si4463::Si4463(SPIClassRP2040 *spi, pin_size_t _cs, pin_size_t sdn,
-               pin_size_t irq, pin_size_t cts_irq) {
+               pin_size_t irq, pin_size_t cts_irq, uint32_t spi_freq) {
   _spi = spi;
   _cs = CS;
   _sdn = SDN;
   _irq = IRQ;
   _cts_irq = CTS_IRQ;
-}
 
-void cts2() { Serial.println("CTS triggered - from Si4463.cpp"); }
+  _spi_settings = SPISettings(spi_freq, MSBFIRST, SPI_MODE0);
+}
 
 void Si4463::begin() {
   pinMode(SDN, OUTPUT);
-
   pinMode(CS, OUTPUT);
   pinMode(SDN, OUTPUT);
   pinMode(CTS_IRQ, INPUT);
 
-  attachInterrupt(6, cts2, FALLING); // CTS_IRQ
-
-  // Disable the module on boot
+  // Disable the module on boot, we only have to wait
+  // 50ms (from the datasheet) before we can enable it
   digitalWrite(SDN, HIGH);
 
-  delay(1000);
+  delay(50);
 
-  SPI1.begin(false);
-  SPI1.beginTransaction(SPISettings(32768, MSBFIRST, SPI_MODE0));
+  this->_spi->begin(false);
+
+  // Begin the transaction. This will setup the internal interrupts
+  // within the SPI hardware. Assume that the user of this library
+  // will **not** be using the SPI bus for anything else
+  this->_spi->beginTransaction(this->_spi_settings);
 
   digitalWrite(SDN, LOW);
 
-  while (digitalRead(CTS_IRQ) == LOW) {
-  }
+  // Block until we get the CTS_IRQ signal from the GPIO1 pin
+  while (digitalRead(CTS_IRQ) == LOW);
 }
 
 void Si4463::powerOnReset() {
@@ -64,6 +66,10 @@ void Si4463::readBuf(uint8_t *buf, size_t len) {
 void Si4463::writeBuf(uint8_t *buf, size_t len) {
   digitalWrite(CS, LOW);
   _spi->transfer(buf, len);
+
+  // We need to wait an extra 40us as the the transfer function
+  // is asynchronous. Adding 40us will ensure that the CS line
+  // is deactivated after the last bit is clocked out
   delayMicroseconds(40);
   digitalWrite(CS, HIGH);
 }
@@ -77,41 +83,54 @@ void Si4463::setCmd(uint8_t cmd, uint8_t *param, size_t len) {
   writeBuf(tx_buf, len + 1);
 
   // Clear the internal rx buffer in the RF4463
+  // We need to do this for every command we send or a
+  // subsequent read may pull from the stream of the last command
   noOp();
 }
 
-void Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
+bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   uint8_t tx_buf2[] = {cmd};
 
+  // Start the SPI transaction to send the command we want to read from
   digitalWrite(CS, LOW);
-  SPI1.transfer(tx_buf2, 1);
+  this->_spi->transfer(cmd);
+  
   delayMicroseconds(40);
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
 
-  uint16_t rx;
-  uint16_t count = 0;
-  while (rx != 0xFF && count++ < 1000000) {
-    digitalWrite(CS, LOW);
-    rx = SPI1.transfer16(0x44FF);
+  uint8_t rx[2];
 
-    if (rx == 0) {
+  // Send the read buf command followed by 0xFF to read the CTS reply
+  // note if we send 0x00, that will reset the internal state machine
+  uint8_t tx[] = {RF4463_CMD_READ_BUF, 0xFF};
+  uint16_t count = 0;
+  
+  // We now need to poll the CTS line until we get the CTS reply
+  // or we timeout
+  while (rx[1] != RF4463_CTS_REPLY && count++ < RF4463_CTS_TIMEOUT) {
+    digitalWrite(CS, LOW);
+ 
+    this->_spi->transfer(tx, rx, sizeof(rx));
+
+    // If we get 0x00 back, the Si4463 is not ready yet
+    // to reply. We need to deassert CS and try the whole 
+    // SPI transaction again
+    if (rx[1] == 0) {
       delayMicroseconds(40);
       digitalWrite(CS, HIGH);
       delayMicroseconds(80);
     }
   }
 
-  if (rx == 0xFF) {
-    Serial.println("CTS received");
-  } else {
-    Serial.println("Timeout waiting for CTS");
-    return;
+  // If we exited the loop and rx is 
+  if (rx[1] != RF4463_CTS_REPLY) {
+    return false;
   }
 
   readBuf(buf, len);
 
-  digitalWrite(CS, HIGH);
+  return true;
 }
 
 void Si4463::setConfig(uint8_t *parameters, size_t paraLen) {
@@ -260,7 +279,7 @@ void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
   fifoReset();                   // clr fifo
   writeTxFifo(sendbuf, sendLen); // load data to fifo
   setTxInterrupt();
-  clrInterrupts(); // clr int factor
+  clearInterrupts(); // clr int factor
   enterTxMode();   // enter TX mode
 
   txTimer = RF4463_TX_TIMEOUT;
@@ -298,7 +317,7 @@ void Si4463::setTxInterrupt() {
   setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3, buf);
 }
 
-void Si4463::clrInterrupts() {
+void Si4463::clearInterrupts() {
   uint8_t buf[] = {0x00, 0x00, 0x00};
   setCmd(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf));
 }
@@ -324,7 +343,7 @@ bool Si4463::rxInit() {
                 &length); // reload rx fifo size
   fifoReset();            // clr fifo
   setRxInterrupt();
-  clrInterrupts(); // clr int factor
+  clearInterrupts(); // clr int factor
   enterRxMode();   // enter RX mode
   return true;
 }
@@ -341,20 +360,17 @@ void Si4463::setRxInterrupt() {
 }
 
 uint8_t Si4463::readRxFifo(uint8_t *databuf) {
-  // if(!checkCTS()) {
-  //   return 0;
-  // }
   uint8_t readLen;
   digitalWrite(CS, LOW);
 
-  SPI1.transfer(RF4463_CMD_RX_FIFO_READ);
-  readLen = SPI1.transfer(0XFF);
+  this->_spi->transfer(RF4463_CMD_RX_FIFO_READ);
+  readLen = this->_spi->transfer(0XFF);
 
   Serial.println("Read Length: " + String(readLen));
 
   uint8_t tx_buf[readLen];
   memset(tx_buf, 0xFF, readLen);
-  SPI1.transfer(tx_buf, databuf, readLen);
+  this->_spi->transfer(tx_buf, databuf, readLen);
 
   delayMicroseconds(40);
   digitalWrite(CS, HIGH);
