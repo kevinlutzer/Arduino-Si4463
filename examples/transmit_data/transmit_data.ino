@@ -18,7 +18,22 @@
 
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
-void _init() {
+void setup() {
+  Serial.begin(115200); // Set baud rate
+
+  SPI1.setRX(MISO);
+  SPI1.setCS(CS);
+  SPI1.setSCK(SCK);
+  SPI1.setTX(MOSI);
+
+  radio.begin();
+  radio.powerOnReset();
+
+  // Set RF parameter,like frequency,data rate etc
+  radio.applyDefaultConfig();
+  radio.configureGPIO();
+
+  Serial.printf("Device ID: %04x\n", radio.getDeviceID());
 
   uint8_t buf[20];
 
@@ -92,33 +107,7 @@ void _init() {
   radio.setProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8, 8, buf);
 
   // set max tx power
-  radio.setTxPower(127);
-}
-
-void _setup() {
-  Serial.begin(115200); // Set baud rate
-
-  SPI1.setRX(MISO);
-  SPI1.setCS(CS);
-  SPI1.setSCK(SCK);
-  SPI1.setTX(MOSI);
-
-  radio.begin();
-  radio.powerOnReset();
-
-  uint8_t buf[20];
-
-  // Set RF parameter,like frequency,data rate etc
-  radio.setConfig(RF4463_CONFIGURATION_DATA, sizeof(RF4463_CONFIGURATION_DATA));
-  radio.configureGPIO();
-
-  _init();
-}
-
-void setup() {
-  _setup();
-  delay(1000);
-  radio.checkDevice();
+  radio.setTxPower(23);
 }
 
 void loop() {

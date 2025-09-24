@@ -8,7 +8,13 @@
 #include "radio_config.h"
 #include <Arduino.h>
 
+// ID that **should** be returned by the getDeviceID function
+#define SI4463_DEVICE_ID 0x4463
+
 static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
+
+// Max length of the command with it's len len
+#define RF4463_CONFIGURATION_DATA_MAX_LEN 0x10
 
 #define RF4463_CTS_REPLY 0xff
 // Waiting time for a valid FFh CTS reading
@@ -481,7 +487,7 @@ static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
-         pin_size_t cts_irq);
+         pin_size_t cts_irq, uint32_t spi_speed = 32768);
   void powerOnReset();
 
   /**
@@ -494,11 +500,23 @@ public:
    */
   bool checkCTS();
 
-  bool checkDevice();
+  /**
+   * @brief Gets the device ID of the connected Si4463 device from the
+   * RF4463_CMD_PART_INFO command
+   * @returns Device ID as a 16-bit integer, or 0 if error occurs
+   */
+  uint16_t getDeviceID();
+
   void begin();
   void configureGPIO();
 
-  void setConfig(uint8_t *parameters, size_t paraLen);
+  /**
+   * @brief Applies a default configuration to the Si4463. This configuration
+   * comes from the supplied radio_config.h file from Silicon Labs.
+   * Once this command is run, updates to the config should be made to tailor
+   * the config to your application
+   */
+  void applyDefaultConfig();
 
   void getProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
   void setProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
@@ -508,6 +526,7 @@ public:
   void txPacket(uint8_t *sendbuf, uint8_t sendLen);
   uint8_t rxPacket(uint8_t *recvbuf);
   bool rxInit();
+  void clearInterrupts(); // clr int factor
 
 private:
   SPIClassRP2040 *_spi;
@@ -515,11 +534,12 @@ private:
   pin_size_t _sdn;
   pin_size_t _irq;
   pin_size_t _cts_irq;
+  SPISettings _spi_settings;
 
   void noOp();
 
   void setCmd(uint8_t cmd, uint8_t *buf, size_t len);
-  void getCmd(uint8_t cmd, uint8_t *buf, size_t len);
+  bool getCmd(uint8_t cmd, uint8_t *buf, size_t len);
 
   void enterRxMode();
   void setRxInterrupt();
@@ -527,8 +547,8 @@ private:
   void fifoReset();                                    // clr fifo
   void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
   void setTxInterrupt();
-  void clrInterrupts(); // clr int factor
-  void enterTxMode();   // enter TX mode
+
+  void enterTxMode(); // enter TX mode
 
   /**
    * @brief Writes a buffer to the SPI device. This handles the CS pin
