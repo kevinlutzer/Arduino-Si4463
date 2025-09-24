@@ -123,7 +123,7 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
     }
   }
 
-  // If we exited the loop and rx is 
+  // Check if we timed out
   if (rx[1] != RF4463_CTS_REPLY) {
     return false;
   }
