@@ -10,7 +10,7 @@
 
 static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 
-// Max length of the command with it's len len 
+// Max length of the command with it's len len
 #define RF4463_CONFIGURATION_DATA_MAX_LEN 0x10
 
 #define RF4463_CTS_REPLY 0xff
@@ -501,7 +501,7 @@ public:
   void begin();
   void configureGPIO();
 
-  /** 
+  /**
    * @brief Applies a default configuration to the Si4463. This configuration
    * comes from the supplied radio_config.h file from Silicon Labs.
    * Once this command is run, updates to the config should be made to tailor
@@ -539,7 +539,7 @@ private:
   void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
   void setTxInterrupt();
 
-  void enterTxMode();   // enter TX mode
+  void enterTxMode(); // enter TX mode
 
   /**
    * @brief Writes a buffer to the SPI device. This handles the CS pin

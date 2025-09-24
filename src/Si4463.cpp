@@ -37,7 +37,8 @@ void Si4463::begin() {
   digitalWrite(SDN, LOW);
 
   // Block until we get the CTS_IRQ signal from the GPIO1 pin
-  while (digitalRead(CTS_IRQ) == LOW);
+  while (digitalRead(CTS_IRQ) == LOW)
+    ;
 }
 
 void Si4463::powerOnReset() {
@@ -45,7 +46,8 @@ void Si4463::powerOnReset() {
 
   // Wait for the device to boot properly so it can be
   // accessed via SPI
-  while (digitalRead(CTS_IRQ) == LOW);
+  while (digitalRead(CTS_IRQ) == LOW)
+    ;
 
   uint8_t tx_buf[] = {RF_POWER_UP};
   this->writeBuf(tx_buf, 7);
@@ -93,7 +95,7 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   // Start the SPI transaction to send the command we want to read from
   digitalWrite(CS, LOW);
   this->_spi->transfer(cmd);
-  
+
   delayMicroseconds(40);
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
@@ -104,16 +106,16 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   // note if we send 0x00, that will reset the internal state machine
   uint8_t tx[] = {RF4463_CMD_READ_BUF, 0xFF};
   uint16_t count = 0;
-  
+
   // We now need to poll the CTS line until we get the CTS reply
   // or we timeout
   while (rx[1] != RF4463_CTS_REPLY && count++ < RF4463_CTS_TIMEOUT) {
     digitalWrite(CS, LOW);
- 
+
     this->_spi->transfer(tx, rx, sizeof(rx));
 
     // If we get 0x00 back, the Si4463 is not ready yet
-    // to reply. We need to deassert CS and try the whole 
+    // to reply. We need to deassert CS and try the whole
     // SPI transaction again
     if (rx[1] == 0) {
       delayMicroseconds(40);
@@ -134,8 +136,8 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
 
 void Si4463::applyDefaultConfig() {
   // command buf starts with length of command in RADIO_CONFIGURATION_DATA_ARRAY
-  uint8_t * parameters, cmdLen, command, buf[RF4463_CONFIGURATION_DATA_MAX_LEN];
-  size_t paraLen; 
+  uint8_t *parameters, cmdLen, command, buf[RF4463_CONFIGURATION_DATA_MAX_LEN];
+  size_t paraLen;
   uint16_t pos;
 
   parameters = RF4463_CONFIGURATION_DATA;
@@ -281,7 +283,7 @@ void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
   writeTxFifo(sendbuf, sendLen); // load data to fifo
   setTxInterrupt();
   clearInterrupts(); // clr int factor
-  enterTxMode();   // enter TX mode
+  enterTxMode();     // enter TX mode
 
   txTimer = RF4463_TX_TIMEOUT;
   while (txTimer--) {
@@ -345,7 +347,7 @@ bool Si4463::rxInit() {
   fifoReset();            // clr fifo
   setRxInterrupt();
   clearInterrupts(); // clr int factor
-  enterRxMode();   // enter RX mode
+  enterRxMode();     // enter RX mode
   return true;
 }
 
