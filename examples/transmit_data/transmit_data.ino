@@ -27,7 +27,7 @@ void setup() {
   SPI1.setTX(MOSI);
 
   radio.begin();
-  radio.powerOnReset();
+  radio.reset();
 
   // Set RF parameter,like frequency,data rate etc
   radio.applyDefaultConfig();

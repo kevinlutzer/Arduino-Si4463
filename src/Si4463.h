@@ -488,7 +488,14 @@ class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
          pin_size_t cts_irq, uint32_t spi_speed = 32768);
-  void powerOnReset();
+
+  /**
+   * @brief Resets the Si4463 by toggling the SDN pin This function will
+   * block for at least 10ms to allow the device to reset and re-initialize
+   * itself. After this function is called, you must call the
+   * `applyDefaultConfig` function to get the device into a known state.
+   */
+  void reset();
 
   /**
    * @brief Waits for the CTS signal from the device via polling the SPI
@@ -507,7 +514,18 @@ public:
    */
   uint16_t getDeviceID();
 
+  /**
+   * @brief Sets the pin modes and SPI settings used with the Si4463
+   * This function does not initialize the Si4463, that is done in the `reset`
+   * and `applyDefaultConfig` functions
+   */
   void begin();
+
+  /**
+   * @brief Configures the GPIO pins on the Si4463. This is needed as the
+   * library depends on Si4463's GPIO1 pin being configured as the "Command
+   * Complete" pin
+   */
   void configureGPIO();
 
   /**
@@ -560,16 +578,6 @@ private:
    *
    */
   void writeBuf(uint8_t *buf, size_t len);
-
-  /**
-   * @brief reads a stream of bytes from the SPI device of length len
-   * This command handles the CS pin automatically, and assumes that there
-   * is not active SPI transaction.
-   *
-   * @param buf Buffer to read the data into
-   * @param len Length of the buffer
-   */
-  void readBuf(uint8_t *buf, size_t len);
 };
 
 #endif

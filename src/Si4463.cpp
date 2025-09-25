@@ -41,7 +41,7 @@ void Si4463::begin() {
     ;
 }
 
-void Si4463::powerOnReset() {
+void Si4463::reset() {
   digitalWrite(SDN, LOW);
 
   // Wait for the device to boot properly so it can be
@@ -54,19 +54,9 @@ void Si4463::powerOnReset() {
   this->noOp();
 }
 
-void Si4463::readBuf(uint8_t *buf, size_t len) {
-  uint8_t tx_buf[len];
-  memset(tx_buf, 0xFF, len);
-
-  digitalWrite(CS, LOW);
-  _spi->transfer(tx_buf, buf, len);
-  delayMicroseconds(40);
-  digitalWrite(CS, HIGH);
-}
-
 void Si4463::writeBuf(uint8_t *buf, size_t len) {
   digitalWrite(CS, LOW);
-  _spi->transfer(buf, len);
+  this->_spi->transfer(buf, len);
 
   // We need to wait an extra 40us as the the transfer function
   // is asynchronous. Adding 40us will ensure that the CS line
@@ -100,11 +90,10 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
 
-  uint8_t rx[2];
-
   // Send the read buf command followed by 0xFF to read the CTS reply
   // note if we send 0x00, that will reset the internal state machine
   uint8_t tx[] = {RF4463_CMD_READ_BUF, 0xFF};
+  uint8_t rx[2];
   uint16_t count = 0;
 
   // We now need to poll the CTS line until we get the CTS reply
@@ -129,7 +118,13 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
     return false;
   }
 
-  readBuf(buf, len);
+  uint8_t tx_buf[len];
+  memset(tx_buf, 0xFF, len);
+
+  digitalWrite(CS, LOW);
+  this->_spi->transfer(tx_buf, buf, len);
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
 
   return true;
 }
@@ -163,7 +158,7 @@ bool Si4463::checkCTS() {
   uint16_t count = 0;
   while (rx != RF4463_CTS_REPLY && count < RF4463_CTS_TIMEOUT) {
     digitalWrite(_cs, LOW);
-    rx = _spi->transfer16(0x44FF);
+    rx = this->_spi->transfer16(0x44FF);
 
     // Si4463 will return 0x00 until it is ready,
     // End the SPI transaction and try again. Also assert _cs
@@ -266,7 +261,7 @@ void Si4463::getProperties(uint16_t startProperty, uint8_t len,
   memset(tx_buf + 2, 0xFF, len);
 
   digitalWrite(CS, LOW);
-  _spi->transfer(tx_buf, rx_buf, len + 2);
+  this->_spi->transfer(tx_buf, rx_buf, len + 2);
   delayMicroseconds(40);
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
