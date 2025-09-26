@@ -212,12 +212,13 @@ void Si4463::setTxPower(uint8_t power) {
 }
 
 uint16_t Si4463::getDeviceID() {
-  uint8_t buf[9];
-  if (!getCmd(RF4463_CMD_PART_INFO, buf, 9)) {
+  uint8_t buf[SI4464_PART_INFO_CMD_LEN];
+  if (!getCmd(RF4463_CMD_PART_INFO, buf, sizeof(buf))) {
     return 0;
   }
 
-  return buf[1] << 8 | buf[2];
+  // Device ID is the combination of PART1 and PART2 bytes 
+  return buf[SI4464_PART_INFO_PART1_BYTE] << 8 | buf[SI4464_PART_INFO_PART2_BYTE];
 }
 
 void Si4463::configureGPIO() {
@@ -362,8 +363,6 @@ uint8_t Si4463::readRxFifo(uint8_t *databuf) {
 
   this->_spi->transfer(RF4463_CMD_RX_FIFO_READ);
   readLen = this->_spi->transfer(0XFF);
-
-  Serial.println("Read Length: " + String(readLen));
 
   uint8_t tx_buf[readLen];
   memset(tx_buf, 0xFF, readLen);
