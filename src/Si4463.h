@@ -484,14 +484,6 @@ static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 #define CS 13
 #define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
 
-/**
- * @brief The different types of FIFOs in the Si4463
- */
-enum FifoType {
-  TX,
-  RX,
-};
-
 class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
@@ -547,10 +539,33 @@ public:
   void getProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
   void setProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
 
+  /**
+   * @brief Sets the TX power level of the Si4463. The max it can be is 127
+   * which is +20dBm, and the minimum is 0 which is -35DBm. See
+   * 5.4.1. Si4464/63: +20 dBm PA in the Si4463 datasheet
+   */
   void setTxPower(uint8_t power);
-  void setSyncWords(uint8_t *syncWords, size_t len);
+
+  /**
+   * @brief Sets the packet length for both TX and RX
+   * @param len Length of the packet, must be between 1 and 64
+   */
+  void setPacketLength(uint8_t len);
+
+  /**
+   * @brief Sets the packet length for both TX and RX
+   * @param len Length of the packet, must be between 
+   */
   void txPacket(uint8_t *sendbuf, uint8_t sendLen);
-  uint8_t rxPacket(uint8_t *recvbuf);
+
+  /*
+   * @brief Reads the latest packet from the Si4463. a packet from the Si4463
+   * @param buf Buffer to store the received packet. This must be of length 64 or less. 
+   * See 6.1. RX and TX FIFO in the Si4464 Datasheet for FIFO details. It clears the FIFO
+   * after reading the packet.
+   * @returns Length of the received packet. 
+   */
+  size_t rxPacket(uint8_t * buf);
   bool rxInit();
   void clearInterrupts(); // clr int factor
 
@@ -569,7 +584,6 @@ private:
 
   void enterRxMode();
   void setRxInterrupt();
-  uint8_t readRxFifo(uint8_t *databuf);
   void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
   void setTxInterrupt();
 

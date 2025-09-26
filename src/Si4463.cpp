@@ -183,50 +183,44 @@ void Si4463::noOp() {
   this->writeBuf(buf, 1);
 }
 
-void Si4463::setSyncWords(uint8_t *syncWords, size_t len) {
-  if ((len == 0) || (len > 3))
-    return;
-
-  uint8_t buf[5];
-  buf[0] = len - 1;
-
-  memcpy(buf + 1, syncWords, len);
-
-  this->setProperties(RF4463_PROPERTY_SYNC_CONFIG, sizeof(buf), buf);
-}
-
 void Si4463::setTxPower(uint8_t power) {
   if (power > 127)
     return;
 
-  uint8_t buf[4];
+  uint8_t buf[SI4463_PA_MODE_PROP_LEN];
 
   // Read the existing config to avoid overwriting other PA settings
-  this->getProperties(RF4463_PROPERTY_PA_MODE, 4, buf);
+  this->getProperties(SI4463_PA_MODE_PROP, sizeof(buf), buf);
 
   // Modify only the power level
   // PA_PWR_LVL is byte 1, bits 6:0
-  buf[1] = power;
+  buf[SI4463_PA_MODE_PROP_PWL_LEVEL_BYTE] = power;
 
   this->setProperties(RF4463_PROPERTY_PA_MODE, sizeof(buf), buf);
 }
 
 uint16_t Si4463::getDeviceID() {
-  uint8_t buf[SI4464_PART_INFO_CMD_LEN];
+  uint8_t buf[SI4463_PART_INFO_CMD_LEN];
   if (!getCmd(RF4463_CMD_PART_INFO, buf, sizeof(buf))) {
     return 0;
   }
 
   // Device ID is the combination of PART1 and PART2 bytes 
-  return buf[SI4464_PART_INFO_PART1_BYTE] << 8 | buf[SI4464_PART_INFO_PART2_BYTE];
+  return buf[SI4463_PART_INFO_PART1_BYTE] << 8 | buf[SI4463_PART_INFO_PART2_BYTE];
 }
 
 void Si4463::configureGPIO() {
+
   // set antenna switch,in RF4463 is GPIO2 and GPIO3
   // don't change setting of GPIO2,GPIO3,NIRQ,SDO
-  uint8_t buf[] = {RF4463_GPIO_INV_CTS,          RF4463_GPIO_INV_CTS,
-                   RF4463_GPIO_RX_STATE,         RF4463_GPIO_TX_STATE,
-                   RF4463_NIRQ_INTERRUPT_SIGNAL, RF4463_GPIO_SPI_DATA_OUT};
+  uint8_t buf[SI4463_GPIO_PIN_CFG_CMD_LEN];
+
+  buf[SI4463_GPIO_PIN_CFG_GPIO_0_BYTE] = SI4463_GPIO_MODE_INV_CTS;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_1_BYTE] = SI4463_GPIO_MODE_INV_CTS;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_2_BYTE] = SI4463_GPIO_MODE_RX_STATE;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_3_BYTE] = SI4463_GPIO_MODE_TX_STATE;
+  buf[SI4463_GPIO_PIN_CFG_NIRQ_BYTE] = SI4463_GPIO_MODE_NIRQ_INTERRUPT_SIGNAL;
+  buf[SI4463_GPIO_PIN_CFG_SDO_BYTE] = SI4463_GPIO_MODE_SPI_DATA_OUT;
 
   setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, sizeof(buf));
 }
@@ -273,7 +267,7 @@ void Si4463::getProperties(uint16_t startProperty, uint8_t len,
 void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
   uint16_t txTimer;
 
-  this->clearFifo(SI4464_FIFO_INFO_RESET_TX_BIT);
+  this->clearFifo(SI4463_FIFO_INFO_RESET_TX_BIT);
   this->writeTxFifo(sendbuf, sendLen); // load data to fifo
   this->setTxInterrupt();
   this->clearInterrupts(); // clr int factor
@@ -295,9 +289,12 @@ void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
   Serial.println("Timeout waiting for TX interrupt");
 }
 
+void Si4463::setPacketLength(uint8_t len) {
+  this->setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(len),
+                    &len);
+}
+
 void Si4463::writeTxFifo(uint8_t *databuf, uint8_t length) {
-  this->setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),
-                      &length);
   uint8_t buf[length + 1];
   buf[0] = length;
   memcpy(buf + 1, databuf, length);
@@ -320,21 +317,35 @@ void Si4463::enterTxMode() {
   this->setCmd(RF4463_CMD_START_TX, buf, sizeof(buf));
 }
 
-uint8_t Si4463::rxPacket(uint8_t *recvbuf) {
-  uint8_t rxLen;
-  rxLen = this->readRxFifo(recvbuf); // read data from fifo
+size_t Si4463::rxPacket(uint8_t * buf) {
+  uint8_t read_len;
+  
+  digitalWrite(CS, LOW);
 
-  this->clearFifo(SI4464_FIFO_INFO_RESET_RX_BIT);
+  // We need to get the length of the FIFO first
+  // to know how many bytes to read out
+  this->_spi->transfer(RF4463_CMD_RX_FIFO_READ);
+  read_len = this->_spi->transfer(0XFF);
 
-  return rxLen;
+  uint8_t tx_buf[read_len];
+  memset(tx_buf, 0xFF, read_len);
+
+  // Now read out the FIFO contents
+  this->_spi->transfer(tx_buf, buf, read_len);
+
+  delayMicroseconds(40);
+  digitalWrite(CS, HIGH);
+  delayMicroseconds(80);
+
+  // We have no use for the data in the FIFO after we read it, 
+  // clear the FIFO
+  this->clearFifo(SI4463_FIFO_INFO_RESET_RX_BIT);
+
+  return read_len;
 }
 
 bool Si4463::rxInit() {
-  uint8_t length;
-  length = 50;
-  this->setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),
-                      &length); // reload rx fifo size
-  this->clearFifo(SI4464_FIFO_INFO_RESET_RX_BIT);
+  this->clearFifo(SI4463_FIFO_INFO_RESET_RX_BIT);
   this->setRxInterrupt();
   this->clearInterrupts(); // clr int factor
   this->enterRxMode();     // enter RX mode
@@ -352,25 +363,7 @@ void Si4463::setRxInterrupt() {
   this->setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3, buf);
 }
 
-void Si4463::clearFifo(uint8_t fifo_reg) {
-  uint8_t buf[] = {1 << fifo_reg};
+void Si4463::clearFifo(uint8_t fifo_bit) {
+  uint8_t buf[] = {1 << fifo_bit};
   setCmd(RF4463_CMD_FIFO_INFO, buf, sizeof(buf)); // clr fifo
-}
-
-uint8_t Si4463::readRxFifo(uint8_t *databuf) {
-  uint8_t readLen;
-  digitalWrite(CS, LOW);
-
-  this->_spi->transfer(RF4463_CMD_RX_FIFO_READ);
-  readLen = this->_spi->transfer(0XFF);
-
-  uint8_t tx_buf[readLen];
-  memset(tx_buf, 0xFF, readLen);
-  this->_spi->transfer(tx_buf, databuf, readLen);
-
-  delayMicroseconds(40);
-  digitalWrite(CS, HIGH);
-  delayMicroseconds(80);
-
-  return readLen;
 }

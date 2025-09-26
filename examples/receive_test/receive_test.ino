@@ -62,11 +62,6 @@ void setup() {
   buf[8] = 0x00;
   radio.setProperties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH, 9, buf);
 
-  // set sync words
-  buf[0] = 0x2d;
-  buf[1] = 0xd4;
-  radio.setSyncWords(buf, 2);
-
   // set CRC
   buf[0] = RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T;
   radio.setProperties(RF4463_PROPERTY_PKT_CRC_CONFIG, 1, buf);
@@ -90,6 +85,7 @@ void setup() {
   buf[7] = RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
            RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE;
   ;
+
   buf[8] = 0x00;
   buf[9] = 0x00;
   buf[10] = 0x00;
@@ -97,6 +93,8 @@ void setup() {
   radio.setProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8, 12, buf);
 
   radio.rxInit();
+
+  radio.setPacketLength(50); // set max packet length
 }
 
 uint8_t rx_buf[256];
