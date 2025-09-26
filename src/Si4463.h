@@ -6,8 +6,8 @@
 #define _SI4463_DRIVER_H
 
 #include "radio_config.h"
+#include "si4464_config.h"
 #include <Arduino.h>
-
 // ID that **should** be returned by the getDeviceID function
 #define SI4463_DEVICE_ID 0x4463
 
@@ -484,6 +484,14 @@ static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 #define CS 13
 #define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
 
+/**
+ * @brief The different types of FIFOs in the Si4463
+ */
+enum FifoType {
+  TX,
+  RX,
+};
+
 class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
@@ -562,11 +570,15 @@ private:
   void enterRxMode();
   void setRxInterrupt();
   uint8_t readRxFifo(uint8_t *databuf);
-  void fifoReset();                                    // clr fifo
   void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
   void setTxInterrupt();
 
   void enterTxMode(); // enter TX mode
+
+  /**
+   * @brief Resets either the TX or RX FIFO on the Si4463
+   */
+  void clearFifo(uint8_t);
 
   /**
    * @brief Writes a buffer to the SPI device. This handles the CS pin

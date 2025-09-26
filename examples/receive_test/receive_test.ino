@@ -20,6 +20,8 @@ Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 
 void setup() {
   Serial.begin(115200); // Set baud rate
+  while (!Serial.available())
+    ;
 
   SPI1.setRX(MISO);
   SPI1.setCS(CS);
@@ -53,6 +55,7 @@ void setup() {
   buf[3] = 0x0f;
   buf[4] = RF4463_PREAMBLE_FIRST_1 | RF4463_PREAMBLE_LENGTH_BYTES |
            RF4463_PREAMBLE_STANDARD_1010;
+
   buf[5] = 0x00;
   buf[6] = 0x00;
   buf[7] = 0x00;
@@ -67,9 +70,6 @@ void setup() {
   // set CRC
   buf[0] = RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T;
   radio.setProperties(RF4463_PROPERTY_PKT_CRC_CONFIG, 1, buf);
-
-  buf[0] = RF4463_CRC_ENDIAN;
-  radio.setProperties(RF4463_PROPERTY_PKT_CONFIG1, 1, buf);
 
   buf[0] = RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2;
   buf[1] = RF4463_SRC_FIELD_ENUM_1;
@@ -95,16 +95,6 @@ void setup() {
   buf[10] = 0x00;
   buf[11] = 0x00;
   radio.setProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8, 12, buf);
-
-  buf[0] = 0x00;
-  buf[1] = 0x00;
-  buf[2] = 0x00;
-  buf[3] = 0x00;
-  buf[4] = 0x00;
-  buf[5] = 0x00;
-  buf[6] = 0x00;
-  buf[7] = 0x00;
-  radio.setProperties(RF4463_PROPERTY_PKT_FIELD_4_LENGTH_12_8, 8, buf);
 
   radio.rxInit();
 }

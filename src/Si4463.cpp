@@ -71,12 +71,12 @@ void Si4463::setCmd(uint8_t cmd, uint8_t *param, size_t len) {
   tx_buf[0] = cmd;
   memcpy(tx_buf + 1, param, len);
 
-  writeBuf(tx_buf, len + 1);
+  this->writeBuf(tx_buf, len + 1);
 
   // Clear the internal rx buffer in the RF4463
   // We need to do this for every command we send or a
   // subsequent read may pull from the stream of the last command
-  noOp();
+  this->noOp();
 }
 
 bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
@@ -180,7 +180,7 @@ bool Si4463::checkCTS() {
 
 void Si4463::noOp() {
   uint8_t buf[] = {RF4463_CMD_NOP};
-  writeBuf(buf, 1);
+  this->writeBuf(buf, 1);
 }
 
 void Si4463::setSyncWords(uint8_t *syncWords, size_t len) {
@@ -272,11 +272,11 @@ void Si4463::getProperties(uint16_t startProperty, uint8_t len,
 void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
   uint16_t txTimer;
 
-  fifoReset();                   // clr fifo
-  writeTxFifo(sendbuf, sendLen); // load data to fifo
-  setTxInterrupt();
-  clearInterrupts(); // clr int factor
-  enterTxMode();     // enter TX mode
+  this->clearFifo(SI4464_FIFO_INFO_RESET_TX_BIT);
+  this->writeTxFifo(sendbuf, sendLen); // load data to fifo
+  this->setTxInterrupt();
+  this->clearInterrupts(); // clr int factor
+  this->enterTxMode();     // enter TX mode
 
   txTimer = RF4463_TX_TIMEOUT;
   while (txTimer--) {
@@ -294,14 +294,9 @@ void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
   Serial.println("Timeout waiting for TX interrupt");
 }
 
-void Si4463::fifoReset() {
-  uint8_t buf[1] = {0x03};
-  setCmd(RF4463_CMD_FIFO_INFO, buf, 1); // clr fifo
-}
-
 void Si4463::writeTxFifo(uint8_t *databuf, uint8_t length) {
-  setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),
-                &length);
+  this->setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),
+                      &length);
   uint8_t buf[length + 1];
   buf[0] = length;
   memcpy(buf + 1, databuf, length);
@@ -310,24 +305,25 @@ void Si4463::writeTxFifo(uint8_t *databuf, uint8_t length) {
 
 void Si4463::setTxInterrupt() {
   uint8_t buf[3] = {0x01, 0x20, 0x00}; // enable PACKET_SENT interrupt
-  setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3, buf);
+  this->setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3, buf);
 }
 
 void Si4463::clearInterrupts() {
   uint8_t buf[] = {0x00, 0x00, 0x00};
-  setCmd(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf));
+  this->setCmd(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf));
 }
 
 void Si4463::enterTxMode() {
   uint8_t buf[] = {0x00, 0x30, 0x00, 0x00};
   buf[0] = RF4463_FREQ_CHANNEL;
-  setCmd(RF4463_CMD_START_TX, buf, sizeof(buf));
+  this->setCmd(RF4463_CMD_START_TX, buf, sizeof(buf));
 }
 
 uint8_t Si4463::rxPacket(uint8_t *recvbuf) {
   uint8_t rxLen;
-  rxLen = readRxFifo(recvbuf); // read data from fifo
-  fifoReset();                 // clr fifo
+  rxLen = this->readRxFifo(recvbuf); // read data from fifo
+
+  this->clearFifo(SI4464_FIFO_INFO_RESET_RX_BIT);
 
   return rxLen;
 }
@@ -335,24 +331,29 @@ uint8_t Si4463::rxPacket(uint8_t *recvbuf) {
 bool Si4463::rxInit() {
   uint8_t length;
   length = 50;
-  setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),
-                &length); // reload rx fifo size
-  fifoReset();            // clr fifo
-  setRxInterrupt();
-  clearInterrupts(); // clr int factor
-  enterRxMode();     // enter RX mode
+  this->setProperties(RF4463_PROPERTY_PKT_FIELD_2_LENGTH_7_0, sizeof(length),
+                      &length); // reload rx fifo size
+  this->clearFifo(SI4464_FIFO_INFO_RESET_RX_BIT);
+  this->setRxInterrupt();
+  this->clearInterrupts(); // clr int factor
+  this->enterRxMode();     // enter RX mode
   return true;
 }
 
 void Si4463::enterRxMode() {
   uint8_t buf[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08};
   buf[0] = RF4463_FREQ_CHANNEL;
-  setCmd(RF4463_CMD_START_RX, buf, sizeof(buf));
+  this->setCmd(RF4463_CMD_START_RX, buf, sizeof(buf));
 }
 
 void Si4463::setRxInterrupt() {
   uint8_t buf[3] = {0x03, 0x18, 0x00}; // enable PACKET_RX interrupt
-  setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3, buf);
+  this->setProperties(RF4463_PROPERTY_INT_CTL_ENABLE, 3, buf);
+}
+
+void Si4463::clearFifo(uint8_t fifo_reg) {
+  uint8_t buf[] = {1 << fifo_reg};
+  setCmd(RF4463_CMD_FIFO_INFO, buf, sizeof(buf)); // clr fifo
 }
 
 uint8_t Si4463::readRxFifo(uint8_t *databuf) {
