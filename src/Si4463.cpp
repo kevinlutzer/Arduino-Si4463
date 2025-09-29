@@ -2,22 +2,8 @@
 #include <SPI.h>
 
 #include "Si4463.h"
+#include "Si4463Prop.h"
 #include "radio_config.h"
-
-Si4463Properties::Si4463Properties(uint16_t prop, uint8_t *param_bytes,
-                                   size_t len) {
-  this->param_bytes = (uint8_t *)malloc(sizeof(uint8_t) * len);
-  memcpy(this->param_bytes, param_bytes, len);
-
-  this->prop = prop;
-  this->len = len;
-}
-
-uint16_t Si4463Properties::getProp() { return prop; }
-uint8_t *Si4463Properties::getParams() { return param_bytes; }
-size_t Si4463Properties::getLen() { return len; }
-
-Si4463Properties::~Si4463Properties() { free(this->param_bytes); }
 
 Si4463::Si4463(SPIClassRP2040 *spi, pin_size_t _cs, pin_size_t sdn,
                pin_size_t irq, pin_size_t cts_irq, uint32_t spi_freq) {

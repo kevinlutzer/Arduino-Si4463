@@ -8,6 +8,8 @@
 #include "radio_config.h"
 #include "si4464_config.h"
 #include <Arduino.h>
+#include "Si4463Prop.h"
+
 // ID that **should** be returned by the getDeviceID function
 #define SI4463_DEVICE_ID 0x4463
 
@@ -483,33 +485,6 @@ static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 #define MISO 12
 #define CS 13
 #define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
-
-class Si4463Properties {
-
-public:
-  /**
-   * @brief Constructs a Si4463Properties object. Because this constructor
-   * will allocate memory for the param_bytes, it **must** be deconstructed when
-   * no longer needed
-   * @param prop The property to set
-   * @param param_bytes Pointer to the parameters to set. This memory will be
-   * copied
-   * @param len Length of the param_bytes array
-   */
-  Si4463Properties(uint16_t prop, uint8_t *param_bytes, size_t len);
-  ~Si4463Properties();
-
-  uint16_t getProp();
-  uint8_t *getParams();
-  size_t getLen();
-
-  void setByte(size_t index, uint8_t value);
-
-private:
-  uint16_t prop;
-  uint8_t *param_bytes;
-  size_t len;
-};
 
 class Si4463 {
 public:

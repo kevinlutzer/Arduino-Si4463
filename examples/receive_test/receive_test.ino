@@ -55,6 +55,7 @@ static Si4463Properties *properties[] = {
                 RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE,
             0x00, 0x00, 0x00, 0x00},
         12),
+    // set packet length
     new Si4463Properties(RF4463_PROPERTY_PKT_LEN, &len, sizeof(len)),
 };
 
