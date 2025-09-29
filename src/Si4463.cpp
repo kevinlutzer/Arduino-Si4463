@@ -84,12 +84,7 @@ bool Si4463::getCmd(uint8_t cmd, uint8_t *buf, size_t len) {
   uint8_t tx_buf2[] = {cmd};
 
   // Start the SPI transaction to send the command we want to read from
-  digitalWrite(CS, LOW);
-  this->_spi->transfer(cmd);
-
-  delayMicroseconds(40);
-  digitalWrite(CS, HIGH);
-  delayMicroseconds(80);
+  writeBuf(tx_buf2, sizeof(tx_buf2));
 
   // Send the read buf command followed by 0xFF to read the CTS reply
   // note if we send 0x00, that will reset the internal state machine
@@ -152,6 +147,9 @@ void Si4463::applyDefaultConfig() {
     this->setCmd(command, buf, cmdLen);
     pos = pos + cmdLen;
   }
+
+  // Apply the GPIO configuration that this library is dependent on
+  this->configureGPIO();
 }
 
 bool Si4463::checkCTS() {
@@ -227,27 +225,21 @@ void Si4463::configureGPIO() {
 }
 
 void Si4463::setProperties(Si4463Properties *prop) {
+  size_t len = prop->getLen() + SI4463_SET_PROPERTY_HEADER_LEN;
+  uint8_t tx_buf[len];
 
-  uint8_t tx_buf[4 + prop->getLen()];
-  tx_buf[0] = RF4463_CMD_SET_PROPERTY;
-  tx_buf[1] = prop->getProp() >> 8;   // GROUP
-  tx_buf[2] = prop->getLen();         // NUM_PROPS
-  tx_buf[3] = prop->getProp() & 0xff; // START_PROP
-
-  memcpy(tx_buf + 4, prop->getParams(), prop->getLen());
-
-  writeBuf(tx_buf, prop->getLen() + 4);
+  prop->serialize(tx_buf);
+  writeBuf(tx_buf, len);
 }
 
 Si4463Properties *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
 
-  uint8_t buf[4];
-  buf[0] = RF4463_CMD_GET_PROPERTY;
-  buf[1] = startProperty >> 8;   // GROUP
-  buf[2] = len;                  // NUM_PROPS
-  buf[3] = startProperty & 0xff; // START_PROP
-
-  writeBuf(buf, 4);
+  Si4463Properties * prop = new Si4463Properties(startProperty, NULL, len);
+  
+  uint8_t buf[SI4463_SET_PROPERTY_HEADER_LEN];
+  prop->serializeHeader(buf);
+  
+  writeBuf(buf, SI4463_SET_PROPERTY_HEADER_LEN);
 
   uint8_t rx_buf[len + 2];
   uint8_t tx_buf[len + 2];
@@ -260,7 +252,7 @@ Si4463Properties *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
 
-  return new Si4463Properties(startProperty, rx_buf, len);
+  return new Si4463Properties(startProperty, rx_buf + 2, len);
 }
 
 void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {

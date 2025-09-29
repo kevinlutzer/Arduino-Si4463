@@ -10,6 +10,11 @@
 // command reset in the Si4463 state machine
 #define SI4463_NULL_BYTE 0xFF
 
+// The length of the header for a set property command
+#define SI4463_SET_PROPERTY_HEADER_LEN 4
+
+#define SI4463_SET_PROPERTY_CMD 0x11
+
 //
 // 3.2.2. PART_INFO - Reports basic information about the device
 //

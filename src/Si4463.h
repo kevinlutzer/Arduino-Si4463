@@ -524,13 +524,6 @@ public:
   void begin();
 
   /**
-   * @brief Configures the GPIO pins on the Si4463. This is needed as the
-   * library depends on Si4463's GPIO1 pin being configured as the "Command
-   * Complete" pin
-   */
-  void configureGPIO();
-
-  /**
    * @brief Applies a default configuration to the Si4463. This configuration
    * comes from the supplied radio_config.h file from Silicon Labs.
    * Once this command is run, updates to the config should be made to tailor
@@ -577,6 +570,13 @@ private:
 
   void setCmd(uint8_t cmd, uint8_t *buf, size_t len);
   bool getCmd(uint8_t cmd, uint8_t *buf, size_t len);
+
+  /**
+   * @brief Configures the GPIO pins on the Si4463. This is needed as the
+   * library depends on Si4463's GPIO1 pin being configured as the "Command
+   * Complete" pin
+   */
+  void configureGPIO();
 
   void enterRxMode();
   void setRxInterrupt();
