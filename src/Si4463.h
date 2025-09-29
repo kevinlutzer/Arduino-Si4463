@@ -5,10 +5,10 @@
 #ifndef _SI4463_DRIVER_H
 #define _SI4463_DRIVER_H
 
+#include "Si4463Prop.h"
 #include "radio_config.h"
 #include "si4464_config.h"
 #include <Arduino.h>
-#include "Si4463Prop.h"
 
 // ID that **should** be returned by the getDeviceID function
 #define SI4463_DEVICE_ID 0x4463
