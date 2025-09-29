@@ -484,6 +484,33 @@ static uint8_t RF4463_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 #define CS 13
 #define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
 
+class Si4463Properties {
+
+public:
+  /**
+   * @brief Constructs a Si4463Properties object. Because this constructor
+   * will allocate memory for the param_bytes, it **must** be deconstructed when
+   * no longer needed
+   * @param prop The property to set
+   * @param param_bytes Pointer to the parameters to set. This memory will be
+   * copied
+   * @param len Length of the param_bytes array
+   */
+  Si4463Properties(uint16_t prop, uint8_t *param_bytes, size_t len);
+  ~Si4463Properties();
+
+  uint16_t getProp();
+  uint8_t *getParams();
+  size_t getLen();
+
+  void setByte(size_t index, uint8_t value);
+
+private:
+  uint16_t prop;
+  uint8_t *param_bytes;
+  size_t len;
+};
+
 class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
@@ -536,8 +563,8 @@ public:
    */
   void applyDefaultConfig();
 
-  void getProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
-  void setProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
+  Si4463Properties *getProperties(uint16_t startProperty, uint8_t len);
+  void setProperties(Si4463Properties *prop);
 
   /**
    * @brief Sets the TX power level of the Si4463. The max it can be is 127
@@ -548,24 +575,18 @@ public:
 
   /**
    * @brief Sets the packet length for both TX and RX
-   * @param len Length of the packet, must be between 1 and 64
-   */
-  void setPacketLength(uint8_t len);
-
-  /**
-   * @brief Sets the packet length for both TX and RX
-   * @param len Length of the packet, must be between 
+   * @param len Length of the packet, must be between
    */
   void txPacket(uint8_t *sendbuf, uint8_t sendLen);
 
   /*
    * @brief Reads the latest packet from the Si4463. a packet from the Si4463
-   * @param buf Buffer to store the received packet. This must be of length 64 or less. 
-   * See 6.1. RX and TX FIFO in the Si4464 Datasheet for FIFO details. It clears the FIFO
-   * after reading the packet.
-   * @returns Length of the received packet. 
+   * @param buf Buffer to store the received packet. This must be of length 64
+   * or less. See 6.1. RX and TX FIFO in the Si4464 Datasheet for FIFO details.
+   * It clears the FIFO after reading the packet.
+   * @returns Length of the received packet.
    */
-  size_t rxPacket(uint8_t * buf);
+  size_t rxPacket(uint8_t *buf);
   bool rxInit();
   void clearInterrupts(); // clr int factor
 

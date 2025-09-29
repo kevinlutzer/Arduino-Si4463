@@ -7,8 +7,8 @@
 #define SI4463_CONFIG_H
 
 // Si4463 null byte. Used for padding commands as 0x00 will cause a
-// command reset in the Si4463 state machine 
-#define SI4463_NULL_BYTE 0xFF 
+// command reset in the Si4463 state machine
+#define SI4463_NULL_BYTE 0xFF
 
 //
 // 3.2.2. PART_INFO - Reports basic information about the device
@@ -17,7 +17,7 @@
 #define SI4463_PART_INFO_CMD_LEN 9
 #define SI4463_PART_INFO_CHIPREV_BYTE 0
 #define SI4463_PART_INFO_PART1_BYTE 1
-#define SI4463_PART_INFO_PART2_BYTE 2 
+#define SI4463_PART_INFO_PART2_BYTE 2
 #define SI4463_PART_INFO_PBUILD_BYTE 3
 #define SI4463_PART_INFO_ID1_BYTE 4
 #define SI4463_PART_INFO_ID2_BYTE 5
@@ -37,7 +37,7 @@
 #define SI4463_GPIO_PIN_CFG_SDO_BYTE 5
 #define SI4463_GPIO_PIN_CFG_GEN_CONFIG_BYTE 6
 // Note that some of these mode codes maybe different pin to pin
-// consult the datasheet for details. 
+// consult the datasheet for details.
 #define SI4463_GPIO_MODE_NO_CHANGE 0
 #define SI4463_GPIO_MODE_DISABLED 1
 #define SI4463_GPIO_MODE_LOW 2
@@ -55,7 +55,8 @@
 #define SI4463_GPIO_MODE_RX_STATE 33
 
 //
-// 3.2.8. FIFO_INFO - Provides access to transmit and receive fifo counts and reset.
+// 3.2.8. FIFO_INFO - Provides access to transmit and receive fifo counts and
+// reset.
 //
 #define SI4463_FIFO_INFO_CMD 0x15
 #define SI4463_FIFO_INFO_RESET_TX_BIT 1

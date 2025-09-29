@@ -17,6 +17,46 @@
 #define CTS_IRQ 6 // Optional, can be used to detect when CTS goes high
 
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
+uint8_t len = 50; // max packet length
+
+static Si4463Properties *properties[] = {
+    // frequency adjust
+    // frequency will inaccurate if change this parameter
+    new Si4463Properties(RF4463_PROPERTY_GLOBAL_XO_TUNE, (uint8_t[]){98}, 1),
+    // tx = rx = 64 byte,PH mode ,high performance mode
+    new Si4463Properties(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
+    new Si4463Properties(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
+    new Si4463Properties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH,
+                         (uint8_t[]){0x08, 0x14, 0x00, 0x0f,
+                                     RF4463_PREAMBLE_FIRST_1 |
+                                         RF4463_PREAMBLE_LENGTH_BYTES |
+                                         RF4463_PREAMBLE_STANDARD_1010,
+                                     0x00, 0x00, 0x00, 0x00},
+                         9),
+    // set CRC
+    new Si4463Properties(RF4463_PROPERTY_PKT_CRC_CONFIG,
+                         (uint8_t[]){RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T},
+                         1),
+    new Si4463Properties(RF4463_PROPERTY_PKT_LEN,
+                         (uint8_t[]){RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2,
+                                     RF4463_SRC_FIELD_ENUM_1, 0x00},
+                         3),
+    // set length of Field 1 -- 4
+    // variable len,field as length field,field 2 as data field
+    // didn't use field 3 -- 4
+    new Si4463Properties(
+        RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8,
+        (uint8_t[]){
+            0x00, 0x01, RF4463_FIELD_CONFIG_PN_START,
+            RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
+                RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE,
+            0x00, 50, RF4463_FIELD_CONFIG_PN_START,
+            RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
+                RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE,
+            0x00, 0x00, 0x00, 0x00},
+        12),
+    new Si4463Properties(RF4463_PROPERTY_PKT_LEN, &len, sizeof(len)),
+};
 
 void setup() {
   Serial.begin(115200); // Set baud rate
@@ -37,64 +77,12 @@ void setup() {
 
   Serial.printf("Device ID: %04x\n", radio.getDeviceID());
 
-  uint8_t buf[20];
-
-  // frequency adjust
-  // frequency will inaccurate if change this parameter
-  buf[0] = 98;
-  radio.setProperties(RF4463_PROPERTY_GLOBAL_XO_TUNE, 1, buf);
-
-  // tx = rx = 64 byte,PH mode ,high performance mode
-  buf[0] = 0x40;
-  radio.setProperties(RF4463_PROPERTY_GLOBAL_CONFIG, 1, buf);
-
-  // set preamble
-  buf[0] = 0x08; //  8 bytes Preamble
-  buf[1] = 0x14; //  detect 20 bits
-  buf[2] = 0x00;
-  buf[3] = 0x0f;
-  buf[4] = RF4463_PREAMBLE_FIRST_1 | RF4463_PREAMBLE_LENGTH_BYTES |
-           RF4463_PREAMBLE_STANDARD_1010;
-
-  buf[5] = 0x00;
-  buf[6] = 0x00;
-  buf[7] = 0x00;
-  buf[8] = 0x00;
-  radio.setProperties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH, 9, buf);
-
-  // set CRC
-  buf[0] = RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T;
-  radio.setProperties(RF4463_PROPERTY_PKT_CRC_CONFIG, 1, buf);
-
-  buf[0] = RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2;
-  buf[1] = RF4463_SRC_FIELD_ENUM_1;
-  buf[2] = 0x00;
-  radio.setProperties(RF4463_PROPERTY_PKT_LEN, 3, buf);
-
-  // set length of Field 1 -- 4
-  // variable len,field as length field,field 2 as data field
-  // didn't use field 3 -- 4
-  buf[0] = 0x00;
-  buf[1] = 0x01;
-  buf[2] = RF4463_FIELD_CONFIG_PN_START;
-  buf[3] = RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
-           RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE;
-  buf[4] = 0x00;
-  buf[5] = 50;
-  buf[6] = RF4463_FIELD_CONFIG_PN_START;
-  buf[7] = RF4463_FIELD_CONFIG_CRC_START | RF4463_FIELD_CONFIG_SEND_CRC |
-           RF4463_FIELD_CONFIG_CHECK_CRC | RF4463_FIELD_CONFIG_CRC_ENABLE;
-  ;
-
-  buf[8] = 0x00;
-  buf[9] = 0x00;
-  buf[10] = 0x00;
-  buf[11] = 0x00;
-  radio.setProperties(RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8, 12, buf);
+  for (auto prop : properties) {
+    radio.setProperties(prop);
+    delete prop;
+  }
 
   radio.rxInit();
-
-  radio.setPacketLength(50); // set max packet length
 }
 
 uint8_t rx_buf[256];
