@@ -5,7 +5,9 @@
 #ifndef _SI4463_DRIVER_H
 #define _SI4463_DRIVER_H
 
+#include "Si4463Prop.h"
 #include "radio_config.h"
+#include "si4464_config.h"
 #include <Arduino.h>
 
 // ID that **should** be returned by the getDeviceID function
@@ -488,7 +490,14 @@ class Si4463 {
 public:
   Si4463(SPIClassRP2040 *spi, pin_size_t cs, pin_size_t sdn, pin_size_t irq,
          pin_size_t cts_irq, uint32_t spi_speed = 32768);
-  void powerOnReset();
+
+  /**
+   * @brief Resets the Si4463 by toggling the SDN pin This function will
+   * block for at least 10ms to allow the device to reset and re-initialize
+   * itself. After this function is called, you must call the
+   * `applyDefaultConfig` function to get the device into a known state.
+   */
+  void reset();
 
   /**
    * @brief Waits for the CTS signal from the device via polling the SPI
@@ -507,7 +516,18 @@ public:
    */
   uint16_t getDeviceID();
 
+  /**
+   * @brief Sets the pin modes and SPI settings used with the Si4463
+   * This function does not initialize the Si4463, that is done in the `reset`
+   * and `applyDefaultConfig` functions
+   */
   void begin();
+
+  /**
+   * @brief Configures the GPIO pins on the Si4463. This is needed as the
+   * library depends on Si4463's GPIO1 pin being configured as the "Command
+   * Complete" pin
+   */
   void configureGPIO();
 
   /**
@@ -518,13 +538,30 @@ public:
    */
   void applyDefaultConfig();
 
-  void getProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
-  void setProperties(uint16_t startProperty, uint8_t length, uint8_t *paraBuf);
+  Si4463Properties *getProperties(uint16_t startProperty, uint8_t len);
+  void setProperties(Si4463Properties *prop);
 
+  /**
+   * @brief Sets the TX power level of the Si4463. The max it can be is 127
+   * which is +20dBm, and the minimum is 0 which is -35DBm. See
+   * 5.4.1. Si4464/63: +20 dBm PA in the Si4463 datasheet
+   */
   void setTxPower(uint8_t power);
-  void setSyncWords(uint8_t *syncWords, size_t len);
+
+  /**
+   * @brief Sets the packet length for both TX and RX
+   * @param len Length of the packet, must be between
+   */
   void txPacket(uint8_t *sendbuf, uint8_t sendLen);
-  uint8_t rxPacket(uint8_t *recvbuf);
+
+  /*
+   * @brief Reads the latest packet from the Si4463. a packet from the Si4463
+   * @param buf Buffer to store the received packet. This must be of length 64
+   * or less. See 6.1. RX and TX FIFO in the Si4464 Datasheet for FIFO details.
+   * It clears the FIFO after reading the packet.
+   * @returns Length of the received packet.
+   */
+  size_t rxPacket(uint8_t *buf);
   bool rxInit();
   void clearInterrupts(); // clr int factor
 
@@ -543,12 +580,15 @@ private:
 
   void enterRxMode();
   void setRxInterrupt();
-  uint8_t readRxFifo(uint8_t *databuf);
-  void fifoReset();                                    // clr fifo
   void writeTxFifo(uint8_t *sendbuf, uint8_t sendLen); // load data to fifo
   void setTxInterrupt();
 
   void enterTxMode(); // enter TX mode
+
+  /**
+   * @brief Resets either the TX or RX FIFO on the Si4463
+   */
+  void clearFifo(uint8_t);
 
   /**
    * @brief Writes a buffer to the SPI device. This handles the CS pin
@@ -560,16 +600,6 @@ private:
    *
    */
   void writeBuf(uint8_t *buf, size_t len);
-
-  /**
-   * @brief reads a stream of bytes from the SPI device of length len
-   * This command handles the CS pin automatically, and assumes that there
-   * is not active SPI transaction.
-   *
-   * @param buf Buffer to read the data into
-   * @param len Length of the buffer
-   */
-  void readBuf(uint8_t *buf, size_t len);
 };
 
 #endif
