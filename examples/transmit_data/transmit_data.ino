@@ -74,7 +74,6 @@ void setup() {
 
   // Set RF parameter,like frequency,data rate etc
   radio.applyDefaultConfig();
-  radio.configureGPIO();
 
   Serial.printf("Device ID: %04x\n", radio.getDeviceID());
 
