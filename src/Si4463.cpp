@@ -66,13 +66,13 @@ void Si4463::writeBuf(uint8_t *buf, size_t len) {
   digitalWrite(CS, HIGH);
 }
 
-void Si4463::setCmd(uint8_t cmd, uint8_t *param, size_t len) {
-  uint8_t tx_buf[len + 1];
+void Si4463::setCmd(Si4463Command * cmd) {
+  uint8_t tx_buf[cmd->getLen() + 1];
 
-  tx_buf[0] = cmd;
-  memcpy(tx_buf + 1, param, len);
+  tx_buf[0] = cmd->getCmd();
+  memcpy(tx_buf + 1, cmd->getParams(), cmd->getLen());
 
-  this->writeBuf(tx_buf, len + 1);
+  this->writeBuf(tx_buf, cmd->getLen() + 1);
 
   // Clear the internal rx buffer in the RF4463
   // We need to do this for every command we send or a
@@ -149,7 +149,7 @@ void Si4463::applyDefaultConfig() {
     command = parameters[pos++];           // get command
     memcpy(buf, parameters + pos, cmdLen); // get parameters
 
-    this->setCmd(command, buf, cmdLen);
+    this->setCmd(new Si4463Command(command, buf, cmdLen));
     pos = pos + cmdLen;
   }
 }
@@ -189,7 +189,7 @@ void Si4463::setTxPower(uint8_t power) {
     return;
 
   // Read the existing config to avoid overwriting other PA settings
-  Si4463Properties *prop =
+  Si4463Property *prop =
       this->getProperties(SI4463_PA_MODE_PROP, SI4463_PA_MODE_PROP_LEN);
 
   // Modify only the power level
@@ -216,17 +216,17 @@ void Si4463::configureGPIO() {
   // don't change setting of GPIO2,GPIO3,NIRQ,SDO
   uint8_t buf[SI4463_GPIO_PIN_CFG_CMD_LEN];
 
-  buf[SI4463_GPIO_PIN_CFG_GPIO_0_BYTE] = SI4463_GPIO_MODE_INV_CTS;
-  buf[SI4463_GPIO_PIN_CFG_GPIO_1_BYTE] = SI4463_GPIO_MODE_INV_CTS;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_0_BYTE] = SI4463_GPIO_MODE_NO_CHANGE;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_1_BYTE] = SI4463_GPIO_MODE_NO_CHANGE;
   buf[SI4463_GPIO_PIN_CFG_GPIO_2_BYTE] = SI4463_GPIO_MODE_RX_STATE;
   buf[SI4463_GPIO_PIN_CFG_GPIO_3_BYTE] = SI4463_GPIO_MODE_TX_STATE;
   buf[SI4463_GPIO_PIN_CFG_NIRQ_BYTE] = SI4463_GPIO_MODE_NIRQ_INTERRUPT_SIGNAL;
   buf[SI4463_GPIO_PIN_CFG_SDO_BYTE] = SI4463_GPIO_MODE_SPI_DATA_OUT;
 
-  setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, sizeof(buf));
+  this->setCmd(new Si4463Command(RF4463_CMD_GPIO_PIN_CFG, buf, SI4463_GPIO_PIN_CFG_CMD_LEN));
 }
 
-void Si4463::setProperties(Si4463Properties *prop) {
+void Si4463::setProperties(Si4463Property *prop) {
 
   uint8_t tx_buf[4 + prop->getLen()];
   tx_buf[0] = RF4463_CMD_SET_PROPERTY;
@@ -239,7 +239,7 @@ void Si4463::setProperties(Si4463Properties *prop) {
   writeBuf(tx_buf, prop->getLen() + 4);
 }
 
-Si4463Properties *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
+Si4463Property *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
 
   uint8_t buf[4];
   buf[0] = RF4463_CMD_GET_PROPERTY;
@@ -260,7 +260,7 @@ Si4463Properties *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
 
-  return new Si4463Properties(startProperty, rx_buf, len);
+  return new Si4463Property(startProperty, rx_buf, len);
 }
 
 void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
@@ -277,9 +277,7 @@ void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
     if (digitalRead(IRQ) == LOW) // wait INT
     {
       uint8_t buf[3];
-      setCmd(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf));
-      Serial.printf("INT STATUS: %02x %02x %02x\n", buf[0], buf[1], buf[2]);
-      Serial.println("Success!");
+      this->setCmd(new Si4463Command(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf)));
       return;
     }
     delay(1);
@@ -292,25 +290,34 @@ void Si4463::writeTxFifo(uint8_t *databuf, uint8_t length) {
   uint8_t buf[length + 1];
   buf[0] = length;
   memcpy(buf + 1, databuf, length);
-  setCmd(RF4463_CMD_TX_FIFO_WRITE, buf, length + 1);
+  
+  Si4463Command * cmd = new Si4463Command(RF4463_CMD_TX_FIFO_WRITE, buf, length + 1);
+  this->setCmd(cmd);
+  delete cmd;
 }
 
 void Si4463::setTxInterrupt() {
-  Si4463Properties *prop = new Si4463Properties(
-      RF4463_PROPERTY_INT_CTL_ENABLE, (uint8_t[]){0x01, 0x20, 0x00}, 3);
+  Si4463Property *prop = new Si4463Property(RF4463_PROPERTY_INT_CTL_ENABLE,
+                                            (uint8_t[]){0x01, 0x20, 0x00}, 3);
   this->setProperties(prop);
   delete prop;
 }
 
 void Si4463::clearInterrupts() {
   uint8_t buf[] = {0x00, 0x00, 0x00};
-  this->setCmd(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf));
+  
+  Si4463Command * cmd = new Si4463Command(RF4463_CMD_GET_INT_STATUS, buf, sizeof(buf)); 
+  this->setCmd(cmd);
+  delete cmd;
 }
 
 void Si4463::enterTxMode() {
   uint8_t buf[] = {0x00, 0x30, 0x00, 0x00};
   buf[0] = RF4463_FREQ_CHANNEL;
-  this->setCmd(RF4463_CMD_START_TX, buf, sizeof(buf));
+  
+  Si4463Command * cmd = new Si4463Command(RF4463_CMD_START_TX, buf, sizeof(buf)); 
+  this->setCmd(cmd);
+  delete cmd;
 }
 
 size_t Si4463::rxPacket(uint8_t *buf) {
@@ -351,17 +358,23 @@ bool Si4463::rxInit() {
 void Si4463::enterRxMode() {
   uint8_t buf[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08};
   buf[0] = RF4463_FREQ_CHANNEL;
-  this->setCmd(RF4463_CMD_START_RX, buf, sizeof(buf));
+
+  Si4463Command * cmd = new Si4463Command(RF4463_CMD_START_RX, buf, sizeof(buf));
+  this->setCmd(cmd);
+  delete cmd;
 }
 
 void Si4463::setRxInterrupt() {
-  Si4463Properties *prop = new Si4463Properties(
-      RF4463_PROPERTY_INT_CTL_ENABLE, (uint8_t[]){0x03, 0x18, 0x00}, 3);
+  Si4463Property *prop = new Si4463Property(RF4463_PROPERTY_INT_CTL_ENABLE,
+                                            (uint8_t[]){0x03, 0x18, 0x00}, 3);
   this->setProperties(prop);
   delete prop;
 }
 
 void Si4463::clearFifo(uint8_t fifo_bit) {
   uint8_t buf[] = {1 << fifo_bit};
-  setCmd(RF4463_CMD_FIFO_INFO, buf, sizeof(buf)); // clr fifo
+
+  Si4463Command * cmd = new Si4463Command(RF4463_CMD_FIFO_INFO, buf, sizeof(buf));
+  this->setCmd(cmd);
+  delete cmd;
 }
