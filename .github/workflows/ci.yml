@@ -23,11 +23,12 @@ jobs:
         fi
         arduino-cli version
         
-    - name: Initialize Arduino CLI
+    - name: Initialize Arduino CLI If It Isn't In Cache
       run: |
-        arduino-cli config init
-        arduino-cli core update-index
-        
+        if [[ ! -d "~/.arduino15" ]]; then
+          arduino-cli config init
+          arduino-cli core update-index
+        fi
     - name: Add RP2040 board package URL
       run: |
         arduino-cli config add board_manager.additional_urls https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
