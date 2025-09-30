@@ -189,7 +189,7 @@ void Si4463::setTxPower(uint8_t power) {
     return;
 
   // Read the existing config to avoid overwriting other PA settings
-  Si4463Properties *prop =
+  Si4463Property *prop =
       this->getProperties(SI4463_PA_MODE_PROP, SI4463_PA_MODE_PROP_LEN);
 
   // Modify only the power level
@@ -216,8 +216,8 @@ void Si4463::configureGPIO() {
   // don't change setting of GPIO2,GPIO3,NIRQ,SDO
   uint8_t buf[SI4463_GPIO_PIN_CFG_CMD_LEN];
 
-  buf[SI4463_GPIO_PIN_CFG_GPIO_0_BYTE] = SI4463_GPIO_MODE_INV_CTS;
-  buf[SI4463_GPIO_PIN_CFG_GPIO_1_BYTE] = SI4463_GPIO_MODE_INV_CTS;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_0_BYTE] = SI4463_GPIO_MODE_NO_CHANGE;
+  buf[SI4463_GPIO_PIN_CFG_GPIO_1_BYTE] = SI4463_GPIO_MODE_NO_CHANGE;
   buf[SI4463_GPIO_PIN_CFG_GPIO_2_BYTE] = SI4463_GPIO_MODE_RX_STATE;
   buf[SI4463_GPIO_PIN_CFG_GPIO_3_BYTE] = SI4463_GPIO_MODE_TX_STATE;
   buf[SI4463_GPIO_PIN_CFG_NIRQ_BYTE] = SI4463_GPIO_MODE_NIRQ_INTERRUPT_SIGNAL;
@@ -226,7 +226,7 @@ void Si4463::configureGPIO() {
   setCmd(RF4463_CMD_GPIO_PIN_CFG, buf, sizeof(buf));
 }
 
-void Si4463::setProperties(Si4463Properties *prop) {
+void Si4463::setProperties(Si4463Property *prop) {
 
   uint8_t tx_buf[4 + prop->getLen()];
   tx_buf[0] = RF4463_CMD_SET_PROPERTY;
@@ -239,7 +239,7 @@ void Si4463::setProperties(Si4463Properties *prop) {
   writeBuf(tx_buf, prop->getLen() + 4);
 }
 
-Si4463Properties *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
+Si4463Property *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
 
   uint8_t buf[4];
   buf[0] = RF4463_CMD_GET_PROPERTY;
@@ -260,7 +260,7 @@ Si4463Properties *Si4463::getProperties(uint16_t startProperty, uint8_t len) {
   digitalWrite(CS, HIGH);
   delayMicroseconds(80);
 
-  return new Si4463Properties(startProperty, rx_buf, len);
+  return new Si4463Property(startProperty, rx_buf, len);
 }
 
 void Si4463::txPacket(uint8_t *sendbuf, uint8_t sendLen) {
@@ -296,7 +296,7 @@ void Si4463::writeTxFifo(uint8_t *databuf, uint8_t length) {
 }
 
 void Si4463::setTxInterrupt() {
-  Si4463Properties *prop = new Si4463Properties(
+  Si4463Property *prop = new Si4463Property(
       RF4463_PROPERTY_INT_CTL_ENABLE, (uint8_t[]){0x01, 0x20, 0x00}, 3);
   this->setProperties(prop);
   delete prop;
@@ -355,7 +355,7 @@ void Si4463::enterRxMode() {
 }
 
 void Si4463::setRxInterrupt() {
-  Si4463Properties *prop = new Si4463Properties(
+  Si4463Property *prop = new Si4463Property(
       RF4463_PROPERTY_INT_CTL_ENABLE, (uint8_t[]){0x03, 0x18, 0x00}, 3);
   this->setProperties(prop);
   delete prop;

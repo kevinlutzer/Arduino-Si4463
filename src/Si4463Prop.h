@@ -3,11 +3,28 @@
 
 #include <Arduino.h>
 
-class Si4463Properties {
+class Si4463Command {
+
+  Si4463Command(uint16_t cmd, uint8_t *param_bytes, size_t len);
+  ~Si4463Command();
+
+  uint16_t getCmd();
+  uint8_t *getParams();
+  size_t getLen();
+
+  void setByte(size_t index, uint8_t value);
+
+private:
+  uint8_t cmd;
+  uint8_t *param_bytes;
+  size_t len;
+}
+
+class Si4463Property: public Si4463Command {
 
 public:
   /**
-   * @brief Constructs a Si4463Properties object. Because this constructor
+   * @brief Constructs a Si4463Property object. Because this constructor
    * will allocate memory for the param_bytes, it **must** be deconstructed when
    * no longer needed
    * @param prop The property to set
@@ -15,8 +32,8 @@ public:
    * copied
    * @param len Length of the param_bytes array
    */
-  Si4463Properties(uint16_t prop, uint8_t *param_bytes, size_t len);
-  ~Si4463Properties();
+  Si4463Property(uint16_t prop, uint8_t *param_bytes, size_t len);
+  ~Si4463Property();
 
   uint16_t getProp();
   uint8_t *getParams();
@@ -26,8 +43,6 @@ public:
 
 private:
   uint16_t prop;
-  uint8_t *param_bytes;
-  size_t len;
 };
 
 #endif // SI4463_PROP_H

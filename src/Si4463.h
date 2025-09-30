@@ -538,8 +538,8 @@ public:
    */
   void applyDefaultConfig();
 
-  Si4463Properties *getProperties(uint16_t startProperty, uint8_t len);
-  void setProperties(Si4463Properties *prop);
+  Si4463Property *getProperties(uint16_t startProperty, uint8_t len);
+  void setProperties(Si4463Property *prop);
 
   /**
    * @brief Sets the TX power level of the Si4463. The max it can be is 127
