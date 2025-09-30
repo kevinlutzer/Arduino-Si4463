@@ -575,7 +575,7 @@ private:
 
   void noOp();
 
-  void setCmd(uint8_t cmd, uint8_t *buf, size_t len);
+  void setCmd(Si4463Command *cmd);
   bool getCmd(uint8_t cmd, uint8_t *buf, size_t len);
 
   void enterRxMode();
