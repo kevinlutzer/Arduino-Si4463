@@ -19,14 +19,14 @@
 Si4463 radio = Si4463(&SPI1, CS, SDN, IRQ, CTS_IRQ);
 uint8_t len = 50; // max packet length
 
-static Si4463Properties *properties[] = {
+static Si4463Property *properties[] = {
     // frequency adjust
     // frequency will inaccurate if change this parameter
-    new Si4463Properties(RF4463_PROPERTY_GLOBAL_XO_TUNE, (uint8_t[]){98}, 1),
+    new Si4463Property(RF4463_PROPERTY_GLOBAL_XO_TUNE, (uint8_t[]){98}, 1),
     // tx = rx = 64 byte,PH mode ,high performance mode
-    new Si4463Properties(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
-    new Si4463Properties(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
-    new Si4463Properties(RF4463_PROPERTY_PREAMBLE_TX_LENGTH,
+    new Si4463Property(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
+    new Si4463Property(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
+    new Si4463Property(RF4463_PROPERTY_PREAMBLE_TX_LENGTH,
                          (uint8_t[]){0x08, 0x14, 0x00, 0x0f,
                                      RF4463_PREAMBLE_FIRST_1 |
                                          RF4463_PREAMBLE_LENGTH_BYTES |
@@ -34,17 +34,17 @@ static Si4463Properties *properties[] = {
                                      0x00, 0x00, 0x00, 0x00},
                          9),
     // set CRC
-    new Si4463Properties(RF4463_PROPERTY_PKT_CRC_CONFIG,
+    new Si4463Property(RF4463_PROPERTY_PKT_CRC_CONFIG,
                          (uint8_t[]){RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T},
                          1),
-    new Si4463Properties(RF4463_PROPERTY_PKT_LEN,
+    new Si4463Property(RF4463_PROPERTY_PKT_LEN,
                          (uint8_t[]){RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2,
                                      RF4463_SRC_FIELD_ENUM_1, 0x00},
                          3),
     // set length of Field 1 -- 4
     // variable len,field as length field,field 2 as data field
     // didn't use field 3 -- 4
-    new Si4463Properties(
+    new Si4463Property(
         RF4463_PROPERTY_PKT_FIELD_1_LENGTH_12_8,
         (uint8_t[]){
             0x00, 0x01, RF4463_FIELD_CONFIG_PN_START,
@@ -56,7 +56,7 @@ static Si4463Properties *properties[] = {
             0x00, 0x00, 0x00, 0x00},
         12),
     // set packet length
-    new Si4463Properties(RF4463_PROPERTY_PKT_LEN, &len, sizeof(len)),
+    new Si4463Property(RF4463_PROPERTY_PKT_LEN, &len, sizeof(len)),
 };
 
 void setup() {
