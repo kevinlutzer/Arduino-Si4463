@@ -27,20 +27,20 @@ static Si4463Property *properties[] = {
     new Si4463Property(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
     new Si4463Property(RF4463_PROPERTY_GLOBAL_CONFIG, (uint8_t[]){0x40}, 1),
     new Si4463Property(RF4463_PROPERTY_PREAMBLE_TX_LENGTH,
-                         (uint8_t[]){0x08, 0x14, 0x00, 0x0f,
-                                     RF4463_PREAMBLE_FIRST_1 |
-                                         RF4463_PREAMBLE_LENGTH_BYTES |
-                                         RF4463_PREAMBLE_STANDARD_1010,
-                                     0x00, 0x00, 0x00, 0x00},
-                         9),
+                       (uint8_t[]){0x08, 0x14, 0x00, 0x0f,
+                                   RF4463_PREAMBLE_FIRST_1 |
+                                       RF4463_PREAMBLE_LENGTH_BYTES |
+                                       RF4463_PREAMBLE_STANDARD_1010,
+                                   0x00, 0x00, 0x00, 0x00},
+                       9),
     // set CRC
     new Si4463Property(RF4463_PROPERTY_PKT_CRC_CONFIG,
-                         (uint8_t[]){RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T},
-                         1),
+                       (uint8_t[]){RF4463_CRC_SEED_ALL_1S | RF4463_CRC_ITU_T},
+                       1),
     new Si4463Property(RF4463_PROPERTY_PKT_LEN,
-                         (uint8_t[]){RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2,
-                                     RF4463_SRC_FIELD_ENUM_1, 0x00},
-                         3),
+                       (uint8_t[]){RF4463_IN_FIFO | RF4463_DST_FIELD_ENUM_2,
+                                   RF4463_SRC_FIELD_ENUM_1, 0x00},
+                       3),
     // set length of Field 1 -- 4
     // variable len,field as length field,field 2 as data field
     // didn't use field 3 -- 4

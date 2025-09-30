@@ -25,6 +25,13 @@
 #define SI4463_PART_INFO_ROMID_BYTE 7
 
 //
+// Get and Set Properties
+//
+
+#define SI4463_SET_PROPERTY_CMD 0x11
+#define SI4463_GET_PROPERTY_CMD 0x12
+
+//
 // 3.2.6. GPIO_PIN_CFG - Configures the GPIO pins.
 //
 #define SI4463_GPIO_PIN_CFG_CMD 0x13
