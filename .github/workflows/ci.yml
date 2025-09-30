@@ -15,16 +15,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Cache Arduino CLI and cores
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.arduino15
-          ~/bin
-        key: arduino-${{ runner.os }}-${{ hashFiles('**/library.properties') }}
-        restore-keys: |
-          arduino-${{ runner.os }}-
-      
     - name: Install Arduino CLI
       run: |
         if ! command -v arduino-cli &> /dev/null; then
