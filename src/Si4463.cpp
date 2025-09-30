@@ -296,8 +296,8 @@ void Si4463::writeTxFifo(uint8_t *databuf, uint8_t length) {
 }
 
 void Si4463::setTxInterrupt() {
-  Si4463Property *prop = new Si4463Property(
-      RF4463_PROPERTY_INT_CTL_ENABLE, (uint8_t[]){0x01, 0x20, 0x00}, 3);
+  Si4463Property *prop = new Si4463Property(RF4463_PROPERTY_INT_CTL_ENABLE,
+                                            (uint8_t[]){0x01, 0x20, 0x00}, 3);
   this->setProperties(prop);
   delete prop;
 }
@@ -355,8 +355,8 @@ void Si4463::enterRxMode() {
 }
 
 void Si4463::setRxInterrupt() {
-  Si4463Property *prop = new Si4463Property(
-      RF4463_PROPERTY_INT_CTL_ENABLE, (uint8_t[]){0x03, 0x18, 0x00}, 3);
+  Si4463Property *prop = new Si4463Property(RF4463_PROPERTY_INT_CTL_ENABLE,
+                                            (uint8_t[]){0x03, 0x18, 0x00}, 3);
   this->setProperties(prop);
   delete prop;
 }

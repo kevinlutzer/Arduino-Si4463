@@ -1,7 +1,7 @@
 #include "Si4463Prop.h"
 
 Si4463Property::Si4463Property(uint16_t prop, uint8_t *param_bytes,
-                                   size_t len) {
+                               size_t len) {
   this->param_bytes = (uint8_t *)malloc(sizeof(uint8_t) * len);
   memcpy(this->param_bytes, param_bytes, len);
 
